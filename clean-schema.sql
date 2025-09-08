@@ -91,3 +91,9 @@ INSERT INTO items (id, name, description, cost, delivery_type, lead_time_minutes
 ('item-2', 'Training Completion Rates', 'Detailed completion statistics by department', 120, 'timed', 2, 'Training completion breakdown: Q1: 82%, Q2: 89%, Q3: 91%, Q4: 87%. Top performing departments consistently show higher engagement with mobile learning platforms.', 'https://observablehq.com/@d3/line-chart'),
 ('item-3', 'Regional Performance Breakdown', 'Detailed sales data by region and time period', 150, 'timed', 3, 'Regional performance analysis: North 15% above target, South 8% below target, East 12% above target, West 3% above target. Seasonal trends show Q4 peak performance across all regions.', 'https://observablehq.com/@d3/choropleth'),
 ('item-4', 'Customer Satisfaction Survey', 'Complete customer feedback and satisfaction metrics', 200, 'instant', 0, 'Customer satisfaction survey results: Overall satisfaction 4.2/5, Product quality 4.5/5, Customer service 3.9/5, Value for money 4.1/5. Key improvement areas identified in service response time.', NULL);
+
+-- Insert sample teams for testing
+INSERT INTO teams (team_number, budget, score) VALUES
+(1, 900, 0),
+(2, 1000, 0),
+(3, 1000, 0);

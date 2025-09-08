@@ -421,6 +421,9 @@ function PlayPageContent() {
 
   const currentStatement = statements[currentStatementIndex]
   const hasDecisionForCurrent = decisions.some(d => d.statement_id === currentStatement?.id)
+  
+  // Debug logging
+  console.log('Debug - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
 
   // Show item detail view if viewing an item
   if (showItemView && viewingItem) {
