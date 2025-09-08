@@ -123,7 +123,17 @@ export class ScoringEngine {
     sessionDurationSeconds: number
   ): Array<{
     team: Team
-    score: ReturnType<typeof this.calculateTeamScore>
+    score: {
+      baseScore: number
+      efficiencyBonus: number
+      totalScore: number
+      breakdown: {
+        correctAnswers: number
+        incorrectAnswers: number
+        unknownAnswers: number
+        noAnswers: number
+      }
+    }
     rank: number
   }> {
     const teamScores = teams.map(team => ({
@@ -194,7 +204,7 @@ export class TeamRotationManager {
     const deciderSet = new Set(deciderOrder)
     
     return memberSet.size === deciderSet.size && 
-           [...memberSet].every(member => deciderSet.has(member))
+           Array.from(memberSet).every(member => deciderSet.has(member))
   }
 }
 
