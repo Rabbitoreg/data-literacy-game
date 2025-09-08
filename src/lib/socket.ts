@@ -286,35 +286,63 @@ export class GameSocketServer {
       session: {
         id: session.id,
         title: session.title,
+        mode: 'live' as const,
+        startAt: new Date(session.created_at || Date.now()),
+        endAt: session.ended_at ? new Date(session.ended_at) : undefined,
         status: session.status as 'setup' | 'active' | 'completed',
-        currentStatementIndex: session.current_statement_index,
-        maxTeams: session.max_teams
+        maxTeams: session.max_teams,
+        currentRound: 1,
+        totalRounds: 2,
+        currentStatementIndex: session.current_statement_index
       },
       teams: teams.map(team => ({
         id: team.id,
+        sessionId: team.session_id,
         name: team.name,
-        score: team.score,
         budgetRemaining: team.budget,
-        status: team.status,
-        memberCount: team.members.length,
-        currentDecider: team.members[team.current_decider_index] || 'Unknown'
+        timeRemaining: 0,
+        members: team.members,
+        deciderOrder: team.members,
+        deciderPointer: team.current_decider_index,
+        score: team.score,
+        completedStatements: 0
       })),
-      statements: statements.map(stmt => ({
+      availableStatements: statements.map(stmt => ({
         id: stmt.id,
+        sessionId: sessionId,
         text: stmt.text,
         topic: stmt.topic,
         difficulty: stmt.difficulty,
         ambiguity: stmt.ambiguity,
-        recommendedItems: stmt.recommended_items
+        truthLabel: stmt.truth_label === null ? 'unknowable' : (stmt.truth_label ? 'true' : 'false'),
+        reasonKey: stmt.reason_key || '',
+        requiredEvidenceTypes: stmt.required_evidence_types || [],
+        recommendedItems: stmt.recommended_items || [],
+        visualRefs: stmt.visual_refs || [],
+        metadata: stmt.metadata
       })),
-      items: items.map(item => ({
+      storeItems: items.map(item => ({
         id: item.id,
+        sessionId: sessionId,
         name: item.name,
-        description: item.description,
+        category: 'data_artifact' as const,
         costMoney: item.cost,
+        costTimeMin: item.lead_time_minutes,
         deliveryType: item.delivery_type,
-        leadTimeMinutes: item.lead_time_minutes
-      }))
+        observableConfig: item.observable_config ? {
+          notebookId: item.observable_config.notebookId || '',
+          cells: item.observable_config.cells || [],
+          mode: 'iframe' as const,
+          height: item.observable_config.height || 400
+        } : undefined,
+        description: item.description,
+        isPersistent: false
+      })),
+      macroTimer: {
+        remaining: 0,
+        isActive: false,
+        phase: 'setup' as const
+      }
     }
   }
 
@@ -338,45 +366,57 @@ export class GameSocketServer {
     return {
       team: {
         id: team.id,
+        sessionId: team.session_id,
         name: team.name,
-        members: team.members,
-        score: team.score,
         budgetRemaining: team.budget,
-        currentDecider,
-        status: team.status
+        timeRemaining: 0,
+        members: team.members,
+        deciderOrder: team.members,
+        deciderPointer: team.current_decider_index,
+        score: team.score,
+        completedStatements: 0
       },
       purchases: purchases.map((p: any) => ({
         id: p.id,
-        item: {
-          id: p.items.id,
-          name: p.items.name,
-          content: p.items.content,
-          observableConfig: p.items.observable_config
-        },
-        status: p.status,
-        deliveredAt: p.delivered_at,
-        purchasedAt: p.purchased_at
+        teamId: p.team_id,
+        roundId: p.round_id || 'default',
+        itemId: p.item_id,
+        costMoney: p.cost,
+        costTimeMin: p.items?.lead_time_minutes || 0,
+        purchasedAt: new Date(p.purchased_at),
+        deliveredAt: p.delivered_at ? new Date(p.delivered_at) : undefined,
+        status: p.status
       })),
       decisions: decisions.map((d: any) => ({
         id: d.id,
+        roundId: d.round_id || 'default',
+        teamId: d.team_id,
         statementId: d.statement_id,
         choice: d.choice,
         rationale: d.rationale,
-        confidence: d.confidence,
-        deciderName: d.decider_name,
+        correct: d.points_earned > 0,
         pointsAwarded: d.points_earned,
-        submittedAt: d.submitted_at
+        deciderName: d.decider_name,
+        submittedAt: new Date(d.submitted_at)
       })),
       availableItems: items.map((item: any) => ({
         id: item.id,
+        sessionId: teamId,
         name: item.name,
-        description: item.description,
+        category: 'data_artifact' as const,
         costMoney: item.cost,
+        costTimeMin: item.lead_time_minutes,
         deliveryType: item.delivery_type,
-        leadTimeMinutes: item.lead_time_minutes
+        observableConfig: item.observable_config ? {
+          notebookId: item.observable_config.notebookId || '',
+          cells: item.observable_config.cells || [],
+          mode: 'iframe' as const,
+          height: item.observable_config.height || 400
+        } : undefined,
+        description: item.description,
+        isPersistent: false
       })),
-      currentStatement: null,
-      timeRemaining: null
+      deliveryTimeline: []
     }
   }
 
