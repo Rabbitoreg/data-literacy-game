@@ -143,6 +143,8 @@ export async function GET(
           description,
           cost,
           content,
+          delivery_type,
+          lead_time_minutes,
           observablehq_url
         )
       `)
