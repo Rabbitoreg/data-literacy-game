@@ -51,6 +51,7 @@ CREATE TABLE items (
   delivery_type TEXT DEFAULT 'instant' CHECK (delivery_type IN ('instant', 'timed')),
   lead_time_minutes INTEGER DEFAULT 0,
   content TEXT,
+  observablehq_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -85,8 +86,8 @@ INSERT INTO statements (id, text, topic, difficulty, ambiguity, truth_label, rea
 ('stmt_2', 'Training completion rates were consistently above 80% across all participant groups.', 'Training Effectiveness', 2, 3, true, 'High engagement recorded', ARRAY['training_data', 'completion_rates']),
 ('stmt_3', 'Customer satisfaction scores improved by at least 10% in the pilot regions.', 'Customer Experience', 3, 3, true, 'Positive feedback trends', ARRAY['satisfaction_survey', 'customer_feedback']);
 
-INSERT INTO items (id, name, description, cost, content, observablehq_url) VALUES
-('item-1', 'Training Completion Data', 'Complete training metrics and participant feedback', 100, 'Detailed training completion rates by department: Sales 85%, Marketing 92%, Operations 78%. Participant feedback shows high satisfaction with interactive modules but requests for more practical exercises.', 'https://observablehq.com/@d3/bar-chart'),
-('item-2', 'Training Completion Rates', 'Detailed completion statistics by department', 120, 'Training completion breakdown: Q1: 82%, Q2: 89%, Q3: 91%, Q4: 87%. Top performing departments consistently show higher engagement with mobile learning platforms.', 'https://observablehq.com/@d3/line-chart'),
-('item-3', 'Regional Performance Breakdown', 'Detailed sales data by region and time period', 150, 'Regional performance analysis: North 15% above target, South 8% below target, East 12% above target, West 3% above target. Seasonal trends show Q4 peak performance across all regions.', 'https://observablehq.com/@d3/choropleth'),
-('item-4', 'Customer Feedback Analysis', 'Qualitative feedback from pilot participants', 180, 'Customer feedback themes: 67% positive on user experience, 23% neutral, 10% negative. Main concerns: system complexity (15%), loading times (8%), feature requests for mobile optimization (22%).', NULL);
+INSERT INTO items (id, name, description, cost, delivery_type, lead_time_minutes, content, observablehq_url) VALUES
+('item-1', 'Training Completion Data', 'Complete training metrics and participant feedback', 100, 'instant', 0, 'Detailed training completion rates by department: Sales 85%, Marketing 92%, Operations 78%. Participant feedback shows high satisfaction with interactive modules but requests for more practical exercises.', 'https://observablehq.com/@d3/bar-chart'),
+('item-2', 'Training Completion Rates', 'Detailed completion statistics by department', 120, 'timed', 2, 'Training completion breakdown: Q1: 82%, Q2: 89%, Q3: 91%, Q4: 87%. Top performing departments consistently show higher engagement with mobile learning platforms.', 'https://observablehq.com/@d3/line-chart'),
+('item-3', 'Regional Performance Breakdown', 'Detailed sales data by region and time period', 150, 'timed', 3, 'Regional performance analysis: North 15% above target, South 8% below target, East 12% above target, West 3% above target. Seasonal trends show Q4 peak performance across all regions.', 'https://observablehq.com/@d3/choropleth'),
+('item-4', 'Customer Satisfaction Survey', 'Complete customer feedback and satisfaction metrics', 200, 'instant', 0, 'Customer satisfaction survey results: Overall satisfaction 4.2/5, Product quality 4.5/5, Customer service 3.9/5, Value for money 4.1/5. Key improvement areas identified in service response time.', NULL);
