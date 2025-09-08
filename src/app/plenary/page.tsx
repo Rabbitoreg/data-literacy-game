@@ -26,10 +26,14 @@ export default function PlenaryPage() {
 
   const [socket, setSocket] = useState<Socket | null>(null)
   const [gameState, setGameState] = useState<GameState | null>(null)
-  const [macroTimer, setMacroTimer] = useState({ 
+  const [macroTimer, setMacroTimer] = useState<{
+    remaining: number;
+    isActive: boolean;
+    phase: 'setup' | 'round1' | 'round2' | 'debrief1' | 'final';
+  }>({ 
     remaining: 0, 
     isActive: false, 
-    phase: 'setup' as const 
+    phase: 'setup'
   })
 
   useEffect(() => {
