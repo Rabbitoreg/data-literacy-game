@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, memo } from 'react'
+import React, { useState, useEffect, useRef, memo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -182,6 +182,14 @@ interface Purchase {
 }
 
 export default function PlayPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PlayPageContent />
+    </Suspense>
+  )
+}
+
+function PlayPageContent() {
   const searchParams = useSearchParams()
   const teamNumber = searchParams.get('team')
 

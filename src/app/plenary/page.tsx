@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { io, Socket } from 'socket.io-client'
 import { Leaderboard } from '@/components/admin/Leaderboard'
@@ -20,7 +20,7 @@ import { RechartsWidget } from '@/components/charts/RechartsWidget'
 import type { GameState } from '@/types/game'
 import { formatCurrency, formatTime } from '@/lib/utils'
 
-export default function PlenaryPage() {
+function PlenaryPageContent() {
   const searchParams = useSearchParams()
   const sessionId = searchParams.get('session')
 
@@ -337,5 +337,13 @@ export default function PlenaryPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PlenaryPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PlenaryPageContent />
+    </Suspense>
   )
 }
