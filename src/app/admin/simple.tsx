@@ -311,7 +311,7 @@ export default function AdminPage() {
                           <p>No team data available yet</p>
                         </div>
                       )}
-                    </div>
+                    </CardContent>
                   </Card>
                 </div>
               </TabsContent>
