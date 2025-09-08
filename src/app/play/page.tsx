@@ -422,9 +422,9 @@ function PlayPageContent() {
   const currentStatement = statements[currentStatementIndex]
   const hasDecisionForCurrent = decisions.some(d => d.statement_id === currentStatement?.id)
   
-  // Debug logging
-  console.log('Debug - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
-  console.log('Debug - decisions:', decisions, 'hasDecisionForCurrent:', hasDecisionForCurrent)
+  // Debug logging - force refresh
+  console.log('Debug NEW - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
+  console.log('Debug NEW - decisions:', decisions, 'hasDecisionForCurrent:', hasDecisionForCurrent, 'timestamp:', Date.now())
 
   // Show item detail view if viewing an item
   if (showItemView && viewingItem) {
