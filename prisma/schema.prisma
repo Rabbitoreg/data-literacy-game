@@ -1,0 +1,167 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  title       String
+  mode        String   @default("practice") // practice | live
+  startAt     DateTime
+  endAt       DateTime?
+  status      String   @default("setup") // setup | active | paused | completed
+  maxTeams    Int      @default(20)
+  currentRound Int     @default(1)
+  totalRounds Int      @default(2)
+  featureFlags Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teams      Team[]
+  statements Statement[]
+  items      Item[]
+
+  @@map("sessions")
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  sessionId       String
+  name            String
+  budgetRemaining Int      @default(1000)
+  timeRemaining   Int      @default(1080) // 18 minutes in seconds
+  members         Json     // string[]
+  deciderOrder    Json     // string[]
+  deciderPointer  Int      @default(0)
+  score           Int      @default(0)
+  completedStatements Int  @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rounds    Round[]
+  purchases Purchase[]
+  decisions Decision[]
+  telemetry Telemetry[]
+
+  @@map("teams")
+}
+
+model Statement {
+  id                    String   @id @default(cuid())
+  sessionId             String
+  text                  String
+  topic                 String
+  difficulty            Int      // 1-5
+  ambiguity             Int      // 1-5
+  truthLabel            String   // true | false | unknowable
+  reasonKey             String
+  requiredEvidenceTypes Json     // string[]
+  recommendedItems      Json     // string[]
+  visualRefs            Json     // string[]
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rounds    Round[]
+  decisions Decision[]
+
+  @@map("statements")
+}
+
+model Item {
+  id               String   @id @default(cuid())
+  sessionId        String
+  name             String
+  category         String   // people_process | data_artifact | analytics_view | quality_check | context_intel
+  costMoney        Int
+  costTimeMin      Int
+  deliveryType     String   // artifact | live_widget | observable_cell
+  artifactId       String?
+  widgetConfig     Json?
+  observableConfig Json?
+  description      String
+  isPersistent     Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+
+  @@map("items")
+}
+
+model Round {
+  id          String    @id @default(cuid())
+  teamId      String
+  statementId String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  status      String    @default("active") // active | completed | skipped
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+  decisions Decision[]
+
+  @@map("rounds")
+}
+
+model Purchase {
+  id           String    @id @default(cuid())
+  teamId       String
+  roundId      String
+  itemId       String
+  costMoney    Int
+  costTimeMin  Int
+  purchasedAt  DateTime  @default(now())
+  deliveredAt  DateTime?
+  status       String    @default("pending") // pending | delivered | expired
+
+  team  Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round Round @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  item  Item  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("purchases")
+}
+
+model Decision {
+  id            String   @id @default(cuid())
+  roundId       String
+  teamId        String
+  statementId   String
+  choice        String   // true | false | unknown
+  rationale     String
+  correct       Boolean
+  pointsAwarded Int
+  deciderName   String
+  submittedAt   DateTime @default(now())
+
+  round     Round     @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@map("decisions")
+}
+
+model Telemetry {
+  id        String   @id @default(cuid())
+  sessionId String
+  teamId    String?
+  roundId   String?
+  eventType String
+  payload   Json
+  timestamp DateTime @default(now())
+
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("telemetry")
+}
