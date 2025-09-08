@@ -525,7 +525,7 @@ function PlayPageContent() {
             <div className="grid grid-cols-12 gap-6">
               {/* Main Decision Area */}
               <div className="col-span-8">
-          {currentStatement && !hasDecisionForCurrent ? (
+          {currentStatement ? (
             <Card>
               <CardHeader>
                 <CardTitle>Statement {currentStatementIndex + 1} of {statements.length}</CardTitle>
