@@ -358,7 +358,13 @@ export default function PlayPage() {
     // Find the purchase data for this item to get the most up-to-date info
     const purchaseData = purchases.find(p => p.item_id === item.id)
     if (purchaseData && purchaseData.item) {
-      setViewingItem(purchaseData.item)
+      // Type assertion to ensure the item has all required fields
+      const fullItem: Item = {
+        ...purchaseData.item,
+        delivery_type: (purchaseData.item as any).delivery_type || 'instant',
+        lead_time_minutes: (purchaseData.item as any).lead_time_minutes || 0
+      }
+      setViewingItem(fullItem)
     } else {
       setViewingItem(item)
     }
