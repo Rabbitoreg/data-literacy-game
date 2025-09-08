@@ -33,7 +33,9 @@ export class ScoringEngine {
     choice: 'true' | 'false' | 'unknown',
     truthLabel: 'true' | 'false' | 'unknowable'
   ): number {
-    const correct = choice === truthLabel
+    // Handle 'unknowable' truth label mapping to 'unknown' choice
+    const normalizedTruthLabel = truthLabel === 'unknowable' ? 'unknown' : truthLabel
+    const correct = choice === normalizedTruthLabel
     
     if (correct) {
       return choice === 'unknown' ? this.config.correctUnknown : this.config.correctTrueFalse
