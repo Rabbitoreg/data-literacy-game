@@ -40,7 +40,7 @@ export function RechartsWidget({
 }: RechartsWidgetProps) {
   const [showTable, setShowTable] = React.useState(false)
 
-  const renderChart = () => {
+  const renderChart = (): React.ReactElement => {
     const commonProps = {
       data,
       margin: { top: 5, right: 30, left: 20, bottom: 5 }
@@ -84,7 +84,11 @@ export function RechartsWidget({
         )
       
       default:
-        return null
+        return (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Unsupported chart type
+          </div>
+        )
     }
   }
 
