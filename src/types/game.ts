@@ -8,6 +8,7 @@ export interface GameSession {
   maxTeams: number;
   currentRound: number;
   totalRounds: number;
+  currentStatementIndex: number;
 }
 
 export interface Team {
