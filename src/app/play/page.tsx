@@ -424,6 +424,7 @@ function PlayPageContent() {
   
   // Debug logging
   console.log('Debug - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
+  console.log('Debug - decisions:', decisions, 'hasDecisionForCurrent:', hasDecisionForCurrent)
 
   // Show item detail view if viewing an item
   if (showItemView && viewingItem) {
