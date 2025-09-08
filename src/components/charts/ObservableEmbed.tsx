@@ -40,29 +40,9 @@ export function ObservableEmbed({
       setIsLoading(true)
       setHasError(false)
 
-      // Dynamically import Observable Runtime
-      const { Runtime, Inspector } = await import('@observablehq/runtime')
-      
-      // Load the notebook
-      const notebookUrl = `https://api.observablehq.com/d/${notebookId}.js?v=3`
-      const notebook = await import(/* webpackIgnore: true */ notebookUrl)
-      
-      // Clear container
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ''
-      }
-
-      // Create runtime and attach cells
-      const runtime = new Runtime()
-      const main = runtime.module(notebook.default, name => {
-        if (cells.includes(name) && containerRef.current) {
-          const cellDiv = document.createElement('div')
-          cellDiv.className = 'observable-cell'
-          containerRef.current.appendChild(cellDiv)
-          return new Inspector(cellDiv)
-        }
-      })
-
+      // For now, just use iframe mode as runtime mode is complex
+      // This function is kept for future implementation
+      setHasError(true)
       setIsLoading(false)
     } catch (error) {
       console.error('Failed to load Observable notebook:', error)
