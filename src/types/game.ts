@@ -22,6 +22,8 @@ export interface Team {
   deciderPointer: number;
   score: number;
   completedStatements: number;
+  team_number?: number;
+  budget?: number;
 }
 
 export interface Statement {

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Team as GameTeam } from '@/types/game'
 
 // Observable embed component - memoized to prevent re-renders
 const ObservableEmbed = memo(({ url, itemId }: { url: string, itemId: string }) => {
@@ -192,8 +193,9 @@ export default function PlayPage() {
 function PlayPageContent() {
   const searchParams = useSearchParams()
   const teamNumber = searchParams.get('team')
+  const playerName = searchParams.get('name')
 
-  const [team, setTeam] = useState<Team | null>(null)
+  const [team, setTeam] = useState<GameTeam | null>(null)
   const [statements, setStatements] = useState<Statement[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [decisions, setDecisions] = useState<Decision[]>([])
@@ -209,7 +211,7 @@ function PlayPageContent() {
   const [rationale, setRationale] = useState('')
   const [loading, setLoading] = useState(true)
 
-  // Load team data
+  // Load team data and add player if needed
   const loadTeamData = async () => {
     if (!teamNumber) return
     try {
@@ -217,9 +219,32 @@ function PlayPageContent() {
       if (response.ok) {
         const data = await response.json()
         setTeam(data.team)
+        
+        // Add player to team if name is provided and not already in team
+        if (playerName && data.team && !data.team.members?.includes(playerName)) {
+          await addPlayerToTeam(playerName)
+        }
       }
     } catch (err) {
       console.error('Failed to load team data:', err)
+    }
+  }
+
+  // Add player to team
+  const addPlayerToTeam = async (name: string) => {
+    if (!teamNumber) return
+    try {
+      const response = await fetch(`/api/teams/${teamNumber}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      })
+      if (response.ok) {
+        // Reload team data to get updated member list
+        loadTeamData()
+      }
+    } catch (err) {
+      console.error('Failed to add player to team:', err)
     }
   }
 
@@ -305,33 +330,41 @@ function PlayPageContent() {
   }, [teamNumber])
 
   const handleSubmitDecision = async () => {
-    if (!team || !statements[currentStatementIndex] || !rationale.trim()) return
+    if (!currentStatement || !team || !rationale.trim()) return
 
     try {
-      const response = await fetch(`/api/teams/${teamNumber}/decisions`, {
+      const response = await fetch(`/api/teams/${team.team_number}/decisions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          statement_id: statements[currentStatementIndex].id,
+          statementId: currentStatement.id,
           choice: selectedChoice,
           rationale: rationale.trim(),
-          confidence
+          confidence,
+          deciderName: assignedDecisionMaker || playerName || 'Unknown'
         })
       })
 
       if (response.ok) {
-        const data = await response.json()
-        setDecisions(prev => [...prev, data.decision])
-        setTeam(data.team)
+        // Reload decisions to update UI
+        await loadDecisions()
         
-        // Move to next statement
-        setCurrentStatementIndex(prev => prev + 1)
-        setSelectedChoice('true')
+        // Reset form
         setRationale('')
+        setSelectedChoice('true')
         setConfidence(70)
+        
+        // Move to next statement if available
+        if (currentStatementIndex < statements.length - 1) {
+          setCurrentStatementIndex(currentStatementIndex + 1)
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Failed to submit decision')
       }
     } catch (err) {
-      console.error('Failed to submit decision:', err)
+      console.error('Error submitting decision:', err)
+      setError('Failed to submit decision')
     }
   }
 
@@ -422,6 +455,17 @@ function PlayPageContent() {
   const currentStatement = statements[currentStatementIndex]
   const hasDecisionForCurrent = decisions.some(d => d.statement_id === currentStatement?.id)
   
+  // Get assigned decision maker for current statement
+  const getAssignedDecisionMaker = (statementIndex: number) => {
+    if (!team?.members || team.members.length === 0) return null
+    
+    // Use statement index to rotate through team members
+    const memberIndex = statementIndex % team.members.length
+    return team.members[memberIndex]
+  }
+  
+  const assignedDecisionMaker = currentStatement ? getAssignedDecisionMaker(currentStatementIndex) : null
+  
   // Debug logging - force refresh
   console.log('Debug NEW - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
   console.log('Debug NEW - decisions:', decisions, 'hasDecisionForCurrent:', hasDecisionForCurrent, 'timestamp:', Date.now())
@@ -486,6 +530,18 @@ function PlayPageContent() {
           <div>
             <h1 className="text-2xl font-bold">Team {team?.team_number}</h1>
             <p className="text-gray-600">Data Decisions: Pilot Pursuit</p>
+            {team?.members && team.members.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-500">Team Members:</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {team.members.map((member: string, index: number) => (
+                    <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                      {member}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-6">
             <div className="text-center">
@@ -529,7 +585,14 @@ function PlayPageContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Statement {currentStatementIndex + 1} of {statements.length}</CardTitle>
-                <Badge variant="outline">{currentStatement.topic}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{currentStatement.topic}</Badge>
+                  {assignedDecisionMaker && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                      Decision Maker: {assignedDecisionMaker}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="p-4 bg-blue-50 rounded-lg">

@@ -5,13 +5,24 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function HomePage() {
   const router = useRouter()
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null)
+  const [playerName, setPlayerName] = useState('')
+  const [showNameInput, setShowNameInput] = useState(false)
 
-  const joinTeam = (teamNumber: number) => {
-    router.push(`/play?team=${teamNumber}`)
+  const selectTeam = (teamNumber: number) => {
+    setSelectedTeam(teamNumber)
+    setShowNameInput(true)
+  }
+
+  const joinTeam = () => {
+    if (selectedTeam && playerName.trim()) {
+      router.push(`/play?team=${selectedTeam}&name=${encodeURIComponent(playerName.trim())}`)
+    }
   }
 
   const goToAdmin = () => {
@@ -48,22 +59,36 @@ export default function HomePage() {
                     key={teamNumber}
                     variant={selectedTeam === teamNumber ? "default" : "outline"}
                     className="h-16 text-lg"
-                    onClick={() => setSelectedTeam(teamNumber)}
+                    onClick={() => selectTeam(teamNumber)}
                   >
                     Team {teamNumber}
                   </Button>
                 ))}
               </div>
               
-              {selectedTeam && (
-                <div className="text-center">
-                  <Button 
-                    onClick={() => joinTeam(selectedTeam)}
-                    size="lg"
-                    className="w-full md:w-auto"
-                  >
-                    Join Team {selectedTeam} & Start Playing
-                  </Button>
+              {selectedTeam && showNameInput && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="playerName">Enter Your Name</Label>
+                    <Input
+                      id="playerName"
+                      type="text"
+                      placeholder="Your name"
+                      value={playerName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <Button 
+                      onClick={joinTeam}
+                      size="lg"
+                      className="w-full md:w-auto"
+                      disabled={!playerName.trim()}
+                    >
+                      Join Team {selectedTeam} & Start Playing
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

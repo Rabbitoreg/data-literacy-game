@@ -13,7 +13,8 @@ export async function POST(
 ) {
   try {
     const teamId = parseInt(params.teamId)
-    const { statement_id, choice, rationale, confidence } = await request.json()
+    const { statementId, choice, rationale, confidence, deciderName } = await request.json()
+    const statement_id = statementId
     
     if (isNaN(teamId)) {
       return NextResponse.json({ error: 'Invalid team ID' }, { status: 400 })
@@ -59,7 +60,8 @@ export async function POST(
         statement_id: statement_id,
         choice: choice.toLowerCase(),
         rationale: rationale || 'Decision made via API',
-        confidence: confidence || 50
+        confidence: confidence || 50,
+        decider_name: deciderName || 'Unknown'
       })
       .select()
       .single()
