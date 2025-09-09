@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
-const prisma = new PrismaClient()
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export async function POST(
   request: NextRequest,
@@ -16,11 +19,13 @@ export async function POST(
     }
 
     // Get current team
-    const team = await prisma.team.findUnique({
-      where: { id: teamId }
-    })
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('team_number', parseInt(teamId))
+      .single()
 
-    if (!team) {
+    if (teamError || !team) {
       return NextResponse.json({ error: 'Team not found' }, { status: 404 })
     }
 
@@ -29,14 +34,19 @@ export async function POST(
     if (!currentMembers.includes(name)) {
       const updatedMembers = [...currentMembers, name]
       
-      await prisma.team.update({
-        where: { id: teamId },
-        data: { 
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({ 
           members: updatedMembers,
           // Initialize decider order if empty
-          deciderOrder: team.deciderOrder?.length ? team.deciderOrder : updatedMembers
-        }
-      })
+          deciderorder: team.deciderorder?.length ? team.deciderorder : updatedMembers
+        })
+        .eq('id', team.id)
+
+      if (updateError) {
+        console.error('Error updating team:', updateError)
+        return NextResponse.json({ error: 'Failed to add member' }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ success: true })

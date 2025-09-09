@@ -21,6 +21,8 @@ CREATE TABLE teams (
   team_number INTEGER UNIQUE NOT NULL,
   budget INTEGER DEFAULT 1000,
   score INTEGER DEFAULT 0,
+  members TEXT[] DEFAULT '{}',
+  deciderorder TEXT[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -48,6 +50,7 @@ CREATE TABLE items (
   lead_time_minutes INTEGER DEFAULT 0,
   content TEXT,
   observable_config JSONB,
+  observablehq_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
