@@ -16,6 +16,8 @@ export async function POST(
     const { statementId, choice, rationale, confidence, deciderName } = await request.json()
     const statement_id = statementId
     
+    console.log('Decision API - teamId:', teamId, 'statementId:', statement_id, 'choice:', choice)
+    
     if (isNaN(teamId)) {
       return NextResponse.json({ error: 'Invalid team ID' }, { status: 400 })
     }
@@ -34,6 +36,8 @@ export async function POST(
       .select('*')
       .eq('team_number', teamId)
       .single()
+
+    console.log('Team lookup result:', { team, teamError })
 
     if (teamError) {
       console.error('Error fetching team:', teamError)

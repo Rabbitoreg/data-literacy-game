@@ -332,6 +332,15 @@ function PlayPageContent() {
   const handleSubmitDecision = async () => {
     if (!currentStatement || !team || !rationale.trim()) return
 
+    console.log('Submitting decision:', {
+      teamNumber: team.team_number,
+      statementId: currentStatement.id,
+      choice: selectedChoice,
+      rationale: rationale.trim(),
+      confidence,
+      deciderName: assignedDecisionMaker || playerName || 'Unknown'
+    })
+
     try {
       const response = await fetch(`/api/teams/${team.team_number}/decisions`, {
         method: 'POST',
@@ -344,6 +353,8 @@ function PlayPageContent() {
           deciderName: assignedDecisionMaker || playerName || 'Unknown'
         })
       })
+
+      console.log('Decision response status:', response.status)
 
       if (response.ok) {
         // Reload decisions to update UI
@@ -360,6 +371,7 @@ function PlayPageContent() {
         }
       } else {
         const errorData = await response.json()
+        console.error('Decision submission failed:', errorData)
         setError(errorData.error || 'Failed to submit decision')
       }
     } catch (err) {
