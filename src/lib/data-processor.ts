@@ -111,7 +111,7 @@ export class DataProcessor {
   static generateSampleStatements(sessionId: string): Statement[] {
     return [
       {
-        id: 'S-001',
+        id: 'stmt_1',
         sessionId,
         text: 'Sales enablement training increased average deal size by 8% in Q3.',
         topic: 'Impact',
@@ -125,7 +125,7 @@ export class DataProcessor {
         metadata: {}
       },
       {
-        id: 'S-002',
+        id: 'stmt_2',
         sessionId,
         text: 'Pilot regions had significantly higher close rates than control.',
         topic: 'Impact',
@@ -139,7 +139,7 @@ export class DataProcessor {
         metadata: {}
       },
       {
-        id: 'S-003',
+        id: 'stmt_3',
         sessionId,
         text: 'Time-to-first-contact improved due to the training.',
         topic: 'Process',
@@ -153,7 +153,7 @@ export class DataProcessor {
         metadata: {}
       },
       {
-        id: 'S-004',
+        id: 'stmt_4',
         sessionId,
         text: 'Training completion rates were higher in the West region.',
         topic: 'Process',
@@ -167,7 +167,7 @@ export class DataProcessor {
         metadata: {}
       },
       {
-        id: 'S-005',
+        id: 'stmt_5',
         sessionId,
         text: 'The learning dashboard shows consistent engagement patterns.',
         topic: 'Quality',

@@ -56,7 +56,40 @@ export async function POST(
       return NextResponse.json({ error: 'Decision already made for this statement' }, { status: 400 })
     }
 
-    // Create decision
+    // Look up evaluation for this statement and choice
+    const { data: evaluation } = await supabase
+      .from('statement_evaluations')
+      .select('*')
+      .eq('statementId', statement_id)
+      .eq('choice', choice.toLowerCase())
+      .single()
+
+    // If no evaluation exists, fall back to legacy scoring
+    let isCorrect = false
+    let pointsAwarded = 0
+    let feedback = ''
+
+    if (evaluation) {
+      isCorrect = evaluation.isCorrect
+      pointsAwarded = evaluation.points
+      feedback = evaluation.feedback
+    } else {
+      // Legacy fallback: check against statement's truthLabel
+      const { data: statement } = await supabase
+        .from('statements')
+        .select('truthLabel')
+        .eq('id', statement_id)
+        .single()
+
+      if (statement) {
+        const normalizedTruthLabel = statement.truthLabel === 'unknowable' ? 'unknown' : statement.truthLabel
+        isCorrect = choice.toLowerCase() === normalizedTruthLabel
+        pointsAwarded = isCorrect ? (choice.toLowerCase() === 'unknown' ? 70 : 100) : -80
+        feedback = isCorrect ? 'Correct answer!' : 'Incorrect answer.'
+      }
+    }
+
+    // Create decision with evaluation results
     const { data: decision_record, error: decisionError } = await supabase
       .from('decisions')
       .insert({
@@ -65,7 +98,9 @@ export async function POST(
         choice: choice.toLowerCase(),
         rationale: rationale || 'Decision made via API',
         confidence: confidence || 50,
-        decider_name: deciderName || 'Unknown'
+        decider_name: deciderName || 'Unknown',
+        is_correct: isCorrect,
+        points_earned: pointsAwarded
       })
       .select()
       .single()

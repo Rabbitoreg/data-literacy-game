@@ -159,6 +159,7 @@ interface Decision {
   choice: 'true' | 'false' | 'unknown'
   rationale: string
   confidence: number
+  decider_name: string
   is_correct?: boolean
   points_earned: number
   submitted_at: string
@@ -200,7 +201,6 @@ function PlayPageContent() {
   const [items, setItems] = useState<Item[]>([])
   const [decisions, setDecisions] = useState<Decision[]>([])
   const [purchases, setPurchases] = useState<Purchase[]>([])
-  const [currentStatementIndex, setCurrentStatementIndex] = useState(0)
   const [viewingItem, setViewingItem] = useState<Item | null>(null)
   const [showItemView, setShowItemView] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -365,10 +365,7 @@ function PlayPageContent() {
         setSelectedChoice('true')
         setConfidence(70)
         
-        // Move to next statement if available
-        if (currentStatementIndex < statements.length - 1) {
-          setCurrentStatementIndex(currentStatementIndex + 1)
-        }
+        // Decision submitted successfully - the next undecided statement will be automatically calculated
       } else {
         const errorData = await response.json()
         console.error('Decision submission failed:', errorData)
@@ -464,8 +461,21 @@ function PlayPageContent() {
     )
   }
 
-  const currentStatement = statements[currentStatementIndex]
-  const hasDecisionForCurrent = decisions.some(d => d.statement_id === currentStatement?.id)
+  // Find the next undecided statement
+  const getNextUndecidedStatement = () => {
+    for (let i = 0; i < statements.length; i++) {
+      const statement = statements[i]
+      const hasDecision = decisions.some(d => d.statement_id === statement.id)
+      if (!hasDecision) {
+        return { statement, index: i }
+      }
+    }
+    return null
+  }
+
+  const nextUndecided = getNextUndecidedStatement()
+  const currentStatement = nextUndecided?.statement
+  const currentStatementIndex = nextUndecided?.index ?? statements.length
   
   // Get assigned decision maker for current statement
   const getAssignedDecisionMaker = (statementIndex: number) => {
@@ -477,10 +487,16 @@ function PlayPageContent() {
   }
   
   const assignedDecisionMaker = currentStatement ? getAssignedDecisionMaker(currentStatementIndex) : null
+
+  // Get completed decisions with statement details
+  const completedDecisions = decisions.map(decision => {
+    const statement = statements.find(s => s.id === decision.statement_id)
+    return { ...decision, statement }
+  }).filter(d => d.statement)
   
   // Debug logging - force refresh
   console.log('Debug NEW - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
-  console.log('Debug NEW - decisions:', decisions, 'hasDecisionForCurrent:', hasDecisionForCurrent, 'timestamp:', Date.now())
+  console.log('Debug NEW - decisions:', decisions, 'completedDecisions:', completedDecisions.length, 'timestamp:', Date.now())
 
   // Show item detail view if viewing an item
   if (showItemView && viewingItem) {
@@ -677,6 +693,49 @@ function PlayPageContent() {
                 </p>
               </CardContent>
             </Card>
+          )}
+
+          {/* Completed Decisions Section */}
+          {completedDecisions.length > 0 && (
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Previous Decisions ({completedDecisions.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {completedDecisions.map((decision, index) => (
+                      <div key={decision.id} className="p-4 border rounded-lg bg-gray-50">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Statement {statements.findIndex(s => s.id === decision.statement_id) + 1}</Badge>
+                            <Badge variant={decision.choice === 'true' ? 'default' : decision.choice === 'false' ? 'destructive' : 'secondary'}>
+                              {decision.choice.toUpperCase()}
+                            </Badge>
+                            <span className="text-sm text-gray-500">
+                              {decision.confidence}% confidence
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(decision.submitted_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <p className="text-sm mb-2 font-medium">{decision.statement?.text}</p>
+                        <p className="text-sm text-gray-600">{decision.rationale}</p>
+                        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                          <span>Decided by: {decision.decider_name}</span>
+                          {decision.points_earned !== undefined && (
+                            <span className={`font-medium ${decision.points_earned > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {decision.points_earned > 0 ? '+' : ''}{decision.points_earned} points
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
 

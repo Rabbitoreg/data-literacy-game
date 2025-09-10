@@ -8,11 +8,49 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+interface Team {
+  id: string
+  team_number: number
+  budget: number
+  score: number
+  members: string[]
+  created_at: string
+}
+
 export default function HomePage() {
   const router = useRouter()
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null)
   const [playerName, setPlayerName] = useState('')
   const [showNameInput, setShowNameInput] = useState(false)
+  const [playerTeams, setPlayerTeams] = useState<Team[]>([])
+  const [playerSearched, setPlayerSearched] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [showTeamSelection, setShowTeamSelection] = useState(false)
+
+  const searchForPlayer = async () => {
+    if (!playerName.trim()) return
+    
+    setIsSearching(true)
+    try {
+      const response = await fetch(`/api/players/search?name=${encodeURIComponent(playerName.trim())}`)
+      if (response.ok) {
+        const data = await response.json()
+        setPlayerTeams(data.teams || [])
+        setPlayerSearched(true)
+        if (data.teams && data.teams.length === 0) {
+          setShowTeamSelection(true)
+        }
+      }
+    } catch (error) {
+      console.error('Error searching for player:', error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const joinExistingTeam = (teamNumber: number) => {
+    router.push(`/play?team=${teamNumber}&name=${encodeURIComponent(playerName.trim())}`)
+  }
 
   const selectTeam = (teamNumber: number) => {
     setSelectedTeam(teamNumber)
@@ -23,6 +61,15 @@ export default function HomePage() {
     if (selectedTeam && playerName.trim()) {
       router.push(`/play?team=${selectedTeam}&name=${encodeURIComponent(playerName.trim())}`)
     }
+  }
+
+  const startOver = () => {
+    setPlayerName('')
+    setPlayerTeams([])
+    setPlayerSearched(false)
+    setShowTeamSelection(false)
+    setSelectedTeam(null)
+    setShowNameInput(false)
   }
 
   const goToAdmin = () => {
@@ -47,50 +94,109 @@ export default function HomePage() {
         </div>
 
         <div className="grid gap-8">
-          {/* Team Selection */}
+          {/* Player Identification */}
           <Card>
             <CardHeader>
-              <CardTitle>Choose Your Team</CardTitle>
+              <CardTitle>
+                {!playerSearched ? "Enter Your Name" : playerTeams.length > 0 ? "Welcome Back!" : "Join a Team"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((teamNumber) => (
-                  <Button
-                    key={teamNumber}
-                    variant={selectedTeam === teamNumber ? "default" : "outline"}
-                    className="h-16 text-lg"
-                    onClick={() => selectTeam(teamNumber)}
-                  >
-                    Team {teamNumber}
-                  </Button>
-                ))}
-              </div>
-              
-              {selectedTeam && showNameInput && (
+              {!playerSearched ? (
+                // Step 1: Player name input and search
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="playerName">Enter Your Name</Label>
+                    <Label htmlFor="playerName">Your Name</Label>
                     <Input
                       id="playerName"
                       type="text"
-                      placeholder="Your name"
+                      placeholder="Enter your name to continue"
                       value={playerName}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)}
                       className="mt-1"
+                      onKeyPress={(e) => e.key === 'Enter' && searchForPlayer()}
                     />
                   </div>
                   <div className="text-center">
                     <Button 
-                      onClick={joinTeam}
+                      onClick={searchForPlayer}
                       size="lg"
                       className="w-full md:w-auto"
-                      disabled={!playerName.trim()}
+                      disabled={!playerName.trim() || isSearching}
                     >
-                      Join Team {selectedTeam} & Start Playing
+                      {isSearching ? 'Searching...' : 'Continue'}
                     </Button>
                   </div>
                 </div>
-              )}
+              ) : playerTeams.length > 0 ? (
+                // Step 2a: Show existing teams for returning player
+                <div className="space-y-4">
+                  <p className="text-gray-600 text-center">
+                    Welcome back, <strong>{playerName}</strong>! You're a member of:
+                  </p>
+                  <div className="grid gap-3">
+                    {playerTeams.map((team) => (
+                      <div key={team.id} className="p-4 border rounded-lg bg-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">Team {team.team_number}</h3>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                              <span>Budget: ${team.budget}</span>
+                              <span>Score: {team.score}</span>
+                              <span>Members: {team.members.length}</span>
+                            </div>
+                          </div>
+                          <Button onClick={() => joinExistingTeam(team.team_number)}>
+                            Continue Playing
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-center pt-4 border-t">
+                    <Button variant="outline" onClick={startOver}>
+                      Not you? Start over
+                    </Button>
+                  </div>
+                </div>
+              ) : showTeamSelection ? (
+                // Step 2b: Show team selection for new player
+                <div className="space-y-4">
+                  <p className="text-gray-600 text-center">
+                    Welcome, <strong>{playerName}</strong>! Choose a team to join:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((teamNumber) => (
+                      <Button
+                        key={teamNumber}
+                        variant={selectedTeam === teamNumber ? "default" : "outline"}
+                        className="h-16 text-lg"
+                        onClick={() => selectTeam(teamNumber)}
+                      >
+                        Team {teamNumber}
+                      </Button>
+                    ))}
+                  </div>
+                  
+                  {selectedTeam && (
+                    <div className="text-center">
+                      <Button 
+                        onClick={joinTeam}
+                        size="lg"
+                        className="w-full md:w-auto"
+                      >
+                        Join Team {selectedTeam} & Start Playing
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="text-center pt-4 border-t">
+                    <Button variant="outline" onClick={startOver}>
+                      Change name
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 

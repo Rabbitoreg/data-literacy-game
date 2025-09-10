@@ -29,8 +29,10 @@ CREATE POLICY "Public update sessions" ON sessions FOR UPDATE USING (true);
 -- Teams: Allow all operations (teams are public in this game)
 CREATE POLICY "Public team access" ON teams FOR ALL USING (true);
 
--- Statements: Read-only access (game content)
+-- Statements: Allow read, update, and insert access (for admin evaluation management)
 CREATE POLICY "Public read statements" ON statements FOR SELECT USING (true);
+CREATE POLICY "Public update statements" ON statements FOR UPDATE USING (true);
+CREATE POLICY "Public insert statements" ON statements FOR INSERT WITH CHECK (true);
 
 -- Items: Read-only access (store content)
 CREATE POLICY "Public read items" ON items FOR SELECT USING (true);
@@ -57,7 +59,7 @@ CREATE POLICY "Team rounds only" ON rounds FOR ALL USING (
 -- GRANT USAGE ON SCHEMA public TO anon;
 
 -- Grant specific table access to anonymous users
-GRANT SELECT ON statements TO anon;
+GRANT SELECT, UPDATE, INSERT ON statements TO anon;
 GRANT SELECT ON items TO anon;
 GRANT ALL ON teams TO anon;
 GRANT ALL ON sessions TO anon;

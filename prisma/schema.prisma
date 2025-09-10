@@ -61,7 +61,7 @@ model Statement {
   topic                 String
   difficulty            Int      // 1-5
   ambiguity             Int      // 1-5
-  truthLabel            String   // true | false | unknowable
+  truthLabel            String   // true | false | unknowable (kept for backward compatibility)
   reasonKey             String
   requiredEvidenceTypes Json     // string[]
   recommendedItems      Json     // string[]
@@ -70,9 +70,10 @@ model Statement {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
-  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  rounds    Round[]
-  decisions Decision[]
+  session     Session              @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rounds      Round[]
+  decisions   Decision[]
+  evaluations StatementEvaluation[]
 
   @@map("statements")
 }
@@ -133,6 +134,22 @@ model Purchase {
   @@map("purchases")
 }
 
+model StatementEvaluation {
+  id          String  @id @default(cuid())
+  statementId String
+  choice      String  // true | false | unknown
+  isCorrect   Boolean
+  points      Int
+  feedback    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  @@unique([statementId, choice])
+  @@map("statement_evaluations")
+}
+
 model Decision {
   id            String   @id @default(cuid())
   roundId       String
@@ -142,6 +159,7 @@ model Decision {
   rationale     String
   correct       Boolean
   pointsAwarded Int
+  feedback      String?  // Feedback from statement evaluation
   deciderName   String
   submittedAt   DateTime @default(now())
 

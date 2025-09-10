@@ -4,11 +4,18 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
+import StatementEvaluationManager from '@/components/admin/StatementEvaluationManager'
 import { 
   Users, 
   Trophy, 
   Activity,
-  RefreshCw
+  RefreshCw,
+  Settings,
+  FileText,
+  LogOut
 } from 'lucide-react'
 
 interface Team {
@@ -40,10 +47,23 @@ interface TeamData {
   purchases: Purchase[]
 }
 
-export default function AdminPage() {
-  const [teamsData, setTeamsData] = useState<TeamData[]>([])
+interface Statement {
+  id: string
+  text: string
+  topic: string
+  truthLabel: string
+}
+
+export default function AdminDashboard() {
+  const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [user, setUser] = useState<any>(null)
+  const router = useRouter()
+  const supabase = createClientComponentClient()
+  const [statementsLoading, setStatementsLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<string>('')
+  const [selectedStatement, setSelectedStatement] = useState<Statement | null>(null)
 
   // Fetch all teams data
   const fetchTeamsData = async () => {
@@ -71,15 +91,49 @@ export default function AdminPage() {
     }
   }
 
+  // Fetch statements data
+  const fetchStatements = async () => {
+    try {
+      setStatementsLoading(true)
+      const response = await fetch('/api/statements')
+      if (response.ok) {
+        const data = await response.json()
+        setStatements(data.statements || [])
+      }
+    } catch (error) {
+      console.error('Error fetching statements:', error)
+    } finally {
+      setStatementsLoading(false)
+    }
+  }
+
   // Initial load and polling
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/admin/login')
+  }
+
   useEffect(() => {
+    // Check authentication
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUser(session.user)
+      }
+    }
+    getUser()
     fetchTeamsData()
+    fetchStatements()
     
-    // Poll every 10 seconds
-    const interval = setInterval(fetchTeamsData, 10000)
+    // Only poll teams data when not in statement evaluation mode
+    const interval = setInterval(() => {
+      if (!selectedStatement) {
+        fetchTeamsData()
+      }
+    }, 10000)
     
     return () => clearInterval(interval)
-  }, [])
+  }, [selectedStatement])
 
   const totalTeams = teamsData.length
   const totalDecisions = teamsData.reduce((sum, team) => sum + team.decisions.length, 0)
@@ -97,7 +151,7 @@ export default function AdminPage() {
             Game Admin Dashboard
           </h1>
           <p className="text-gray-600">
-            Monitor team progress and game statistics
+            Monitor team progress and manage game configuration
           </p>
           <div className="flex items-center gap-4 mt-4">
             <Button 
@@ -115,6 +169,20 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+
+        <Tabs defaultValue="teams" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="teams" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Team Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="statements" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Statement Scoring
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="teams" className="mt-6">
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -214,6 +282,64 @@ export default function AdminPage() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="statements" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Statement Scoring Configuration
+                </CardTitle>
+                <p className="text-sm text-gray-600">
+                  Configure scoring rules for each statement. Click on a statement to set up multiple correct answers with different point values.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {statementsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading statements...</p>
+                  </div>
+                ) : statements.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No statements found
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {statements.map((statement) => (
+                      <Card key={statement.id} className="border hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => setSelectedStatement(statement)}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium mb-2">{statement.text}</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">{statement.topic}</Badge>
+                                <Badge variant="secondary">Legacy: {statement.truthLabel}</Badge>
+                              </div>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              Configure Scoring
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Statement Evaluation Manager Modal */}
+        {selectedStatement && (
+          <StatementEvaluationManager
+            statement={selectedStatement}
+            onClose={() => setSelectedStatement(null)}
+          />
+        )}
       </div>
     </div>
   )
