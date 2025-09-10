@@ -121,6 +121,10 @@ export default function AdminDashboard() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         setUser(session.user)
+      } else {
+        // No session, redirect to login
+        router.push('/admin/login')
+        return
       }
     }
     getUser()

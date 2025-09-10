@@ -7,7 +7,7 @@ export async function POST(request: Request, { params }: { params: { statementId
     // Use service role key for admin operations
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
     const { statementId } = params
     const { evaluations } = await request.json()
