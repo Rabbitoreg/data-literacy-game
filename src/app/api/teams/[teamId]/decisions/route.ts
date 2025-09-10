@@ -56,32 +56,41 @@ export async function POST(
       return NextResponse.json({ error: 'Decision already made for this statement' }, { status: 400 })
     }
 
-    // Look up evaluation for this statement and choice
-    const { data: evaluation } = await supabase
-      .from('statement_evaluations')
+    // Get statement and check for evaluations in recommended_items
+    const { data: statement } = await supabase
+      .from('statements')
       .select('*')
-      .eq('statementId', statement_id)
-      .eq('choice', choice.toLowerCase())
+      .eq('id', statement_id)
       .single()
 
-    // If no evaluation exists, fall back to legacy scoring
     let isCorrect = false
     let pointsAwarded = 0
     let feedback = ''
 
-    if (evaluation) {
-      isCorrect = evaluation.isCorrect
-      pointsAwarded = evaluation.points
-      feedback = evaluation.feedback
-    } else {
-      // Legacy fallback: check against statement's truthLabel
-      const { data: statement } = await supabase
-        .from('statements')
-        .select('truthLabel')
-        .eq('id', statement_id)
-        .single()
+    if (statement) {
+      // Check for evaluations stored in recommended_items as JSON
+      let evaluations = []
+      try {
+        if (statement.recommended_items && Array.isArray(statement.recommended_items) && statement.recommended_items.length > 0) {
+          const lastItem = statement.recommended_items[statement.recommended_items.length - 1]
+          if (typeof lastItem === 'string' && lastItem.startsWith('{')) {
+            evaluations = JSON.parse(lastItem).evaluations || []
+          }
+        }
+      } catch (e) {
+        evaluations = []
+      }
 
-      if (statement) {
+      // Find evaluation for this choice
+      const evaluation = evaluations.find((e: any) => e.choice === choice.toLowerCase())
+      
+      // Find evaluation for this choice
+      if (evaluation) {
+        isCorrect = evaluation.isCorrect
+        pointsAwarded = evaluation.points
+        feedback = evaluation.feedback
+      } else {
+        // Legacy fallback: check against statement's truthLabel
         const normalizedTruthLabel = statement.truthLabel === 'unknowable' ? 'unknown' : statement.truthLabel
         isCorrect = choice.toLowerCase() === normalizedTruthLabel
         pointsAwarded = isCorrect ? (choice.toLowerCase() === 'unknown' ? 70 : 100) : -80

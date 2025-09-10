@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Ensure we have the required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+}
+
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable - required for admin operations')
+}
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
+
 // POST /api/statements/[statementId]/evaluations/bulk - Create/update multiple evaluations at once
 export async function POST(request: Request, { params }: { params: { statementId: string } }) {
   try {
-    // Use service role key for admin operations
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
     const { statementId } = params
     const { evaluations } = await request.json()
     
@@ -55,6 +64,8 @@ export async function POST(request: Request, { params }: { params: { statementId
     if (fetchError || !statement) {
       return NextResponse.json({ error: 'Statement not found' }, { status: 404 })
     }
+
+    console.log('Current statement recommended_items:', statement.recommended_items)
 
     // Get current evaluations from recommended_items
     let currentEvaluations = []

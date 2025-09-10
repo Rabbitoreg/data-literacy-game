@@ -91,14 +91,22 @@ export default function StatementEvaluationManager({ statement, onClose }: State
         body: JSON.stringify({ evaluations: evaluationsToSave })
       })
 
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
       if (response.ok) {
         const result = await response.json()
         console.log('Save result:', result)
         await loadEvaluations() // Refresh the data
       } else {
-        const errorData = await response.json()
-        console.error('Save error:', errorData)
-        setError(errorData.error || 'Failed to save evaluations')
+        const errorText = await response.text()
+        console.error('Save error response:', errorText)
+        try {
+          const errorData = JSON.parse(errorText)
+          setError(errorData.error || 'Failed to save evaluations')
+        } catch {
+          setError(`Failed to save evaluations: ${response.status} ${response.statusText}`)
+        }
       }
     } catch (err) {
       console.error('Save exception:', err)
