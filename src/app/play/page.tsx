@@ -726,7 +726,7 @@ function PlayPageContent() {
                             <Button
                               size="sm"
                               onClick={() => isPurchased ? handleViewItem(item) : handlePurchaseItem(item.id)}
-                              disabled={!team || (!isPurchased && team.budget < item.cost)}
+                              disabled={!team || (!isPurchased && (team.budget ?? 0) < item.cost)}
                               className="w-full"
                               variant={isPurchased ? "default" : "default"}
                               style={isPurchased ? { backgroundColor: '#10b981', borderColor: '#10b981', color: 'white' } : {}}
