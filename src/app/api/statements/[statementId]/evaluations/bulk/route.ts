@@ -109,6 +109,9 @@ export async function POST(request: Request, { params }: { params: { statementId
     const updatedItems = [...currentItems, JSON.stringify({ evaluations: currentEvaluations })]
 
     console.log('About to save updated items:', updatedItems)
+    console.log('Statement ID for update:', statementId)
+    console.log('Supabase client config check - URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('Supabase client config check - Service role key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
     
     // First check if statement exists
     const { data: existingStatement, error: checkError } = await supabase
@@ -117,7 +120,10 @@ export async function POST(request: Request, { params }: { params: { statementId
       .eq('id', statementId)
       .single()
     
-    console.log('Statement exists check:', { existingStatement, checkError })
+    console.log('Statement exists check:', { 
+      existingStatement: existingStatement ? { id: existingStatement.id, hasRecommendedItems: !!existingStatement.recommended_items } : null, 
+      checkError 
+    })
     
     if (checkError || !existingStatement) {
       console.log('Statement not found:', statementId)
@@ -125,22 +131,37 @@ export async function POST(request: Request, { params }: { params: { statementId
     }
     
     // Update statement - back to regular update since upsert has RLS issues
+    console.log('Attempting database update...')
     const { data: updateData, error: updateError, count: updateCount } = await supabase
       .from('statements')
       .update({ recommended_items: updatedItems })
       .eq('id', statementId)
       .select('id, recommended_items')
     
-    console.log('Raw update result:', { updateData, updateError, updateCount })
+    console.log('Raw update result:', { 
+      updateData: updateData ? updateData.map(item => ({ id: item.id, hasRecommendedItems: !!item.recommended_items })) : null, 
+      updateError, 
+      updateCount,
+      updateErrorDetails: updateError ? { message: updateError.message, details: updateError.details, hint: updateError.hint, code: updateError.code } : null
+    })
     
-    // Then fetch the updated record separately
+    // Then fetch the updated record separately to verify persistence
+    console.log('Verifying update with fresh fetch...')
     const { data: updatedData, error: fetchAfterError } = await supabase
       .from('statements')
       .select('id, recommended_items')
       .eq('id', statementId)
       .single()
     
-    console.log('Fetch after update:', { updatedData, fetchAfterError })
+    console.log('Fetch after update:', { 
+      updatedData: updatedData ? { 
+        id: updatedData.id, 
+        hasRecommendedItems: !!updatedData.recommended_items,
+        recommendedItemsLength: updatedData.recommended_items?.length,
+        lastItemIsJSON: updatedData.recommended_items?.[updatedData.recommended_items.length - 1]?.startsWith?.('{')
+      } : null, 
+      fetchAfterError 
+    })
 
     if (updateError) {
       console.log('Error bulk saving statement evaluations:', updateError)
