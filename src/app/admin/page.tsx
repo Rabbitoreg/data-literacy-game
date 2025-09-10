@@ -56,6 +56,8 @@ interface Statement {
 
 export default function AdminDashboard() {
   const [teams, setTeams] = useState<Team[]>([])
+  const [teamsData, setTeamsData] = useState<TeamData[]>([])
+  const [statements, setStatements] = useState<Statement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
