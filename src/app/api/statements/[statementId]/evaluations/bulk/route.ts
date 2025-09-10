@@ -132,18 +132,40 @@ export async function POST(request: Request, { params }: { params: { statementId
     
     // Update statement - back to regular update since upsert has RLS issues
     console.log('Attempting database update...')
+    
+    // First try a simple update without select to see if that works
+    const { error: simpleUpdateError, count: simpleUpdateCount } = await supabase
+      .from('statements')
+      .update({ recommended_items: updatedItems })
+      .eq('id', statementId)
+    
+    console.log('Simple update result:', { 
+      simpleUpdateError, 
+      simpleUpdateCount,
+      simpleUpdateErrorDetails: simpleUpdateError ? { 
+        message: simpleUpdateError.message, 
+        details: simpleUpdateError.details, 
+        hint: simpleUpdateError.hint, 
+        code: simpleUpdateError.code 
+      } : null
+    })
+    
+    // Now try with select
     const { data: updateData, error: updateError, count: updateCount } = await supabase
       .from('statements')
       .update({ recommended_items: updatedItems })
       .eq('id', statementId)
       .select('id, recommended_items')
     
-    console.log('Raw update result:', { 
+    console.log('Update with select result:', { 
       updateData: updateData ? updateData.map(item => ({ id: item.id, hasRecommendedItems: !!item.recommended_items })) : null, 
       updateError, 
       updateCount,
       updateErrorDetails: updateError ? { message: updateError.message, details: updateError.details, hint: updateError.hint, code: updateError.code } : null
     })
+    
+    // Check if we have any update errors
+    const finalError = simpleUpdateError || updateError
     
     // Then fetch the updated record separately to verify persistence
     console.log('Verifying update with fresh fetch...')
@@ -163,10 +185,18 @@ export async function POST(request: Request, { params }: { params: { statementId
       fetchAfterError 
     })
 
-    if (updateError) {
-      console.log('Error bulk saving statement evaluations:', updateError)
+    if (finalError) {
+      console.log('Error bulk saving statement evaluations:', finalError)
       console.log('Updated items that failed to save:', updatedItems)
       return NextResponse.json({ error: 'Failed to save evaluations' }, { status: 500 })
+    }
+    
+    // Additional check: verify the count of affected rows
+    if (simpleUpdateCount === 0 && updateCount === 0) {
+      console.log('WARNING: No rows were updated! This suggests the WHERE clause did not match any records.')
+      console.log('Statement ID used in query:', statementId)
+      console.log('Existing statement ID from database:', existingStatement?.id)
+      return NextResponse.json({ error: 'No rows were updated - statement may not exist' }, { status: 404 })
     }
 
     return NextResponse.json({ evaluations: currentEvaluations })

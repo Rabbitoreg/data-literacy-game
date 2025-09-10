@@ -86,6 +86,7 @@ model Item {
   costMoney        Int
   costTimeMin      Int
   deliveryType     String   // artifact | live_widget | observable_cell
+  dataType         String?  // survey | financial | operational | market | regulatory
   artifactId       String?
   widgetConfig     Json?
   observableConfig Json?

@@ -47,23 +47,29 @@ export async function GET(
     let evaluations = []
     try {
       // Try to parse recommended_items as JSON for evaluations
+      console.log('GET - Raw recommended_items:', statement.recommended_items)
+      console.log('GET - recommended_items type:', typeof statement.recommended_items)
+      console.log('GET - recommended_items length:', statement.recommended_items?.length)
+      
       if (statement.recommended_items && Array.isArray(statement.recommended_items) && statement.recommended_items.length > 0) {
         const lastItem = statement.recommended_items[statement.recommended_items.length - 1]
+        console.log('GET - Last item:', lastItem)
+        console.log('GET - Last item type:', typeof lastItem)
+        console.log('GET - Last item starts with {:', lastItem?.startsWith?.('{'))
+        
         if (typeof lastItem === 'string' && lastItem.startsWith('{')) {
-          evaluations = JSON.parse(lastItem).evaluations || []
+          const parsedData = JSON.parse(lastItem)
+          console.log('GET - Parsed JSON data:', parsedData)
+          evaluations = parsedData.evaluations || []
+          console.log('GET - Extracted evaluations:', evaluations)
         }
       }
     } catch (e) {
+      console.error('GET - Error parsing evaluations:', e)
       evaluations = []
     }
 
-    console.log('Evaluations query result:', { 
-      evaluations, 
-      error: null, 
-      recommended_items: statement.recommended_items,
-      lastItem: statement.recommended_items?.[statement.recommended_items.length - 1],
-      isLastItemJSON: statement.recommended_items?.[statement.recommended_items.length - 1]?.startsWith?.('{')
-    })
+    console.log('GET - Final evaluations result:', evaluations)
 
     return NextResponse.json({ evaluations })
 

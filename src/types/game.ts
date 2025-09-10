@@ -49,6 +49,7 @@ export interface StoreItem {
   costMoney: number;
   costTimeMin: number;
   deliveryType: 'artifact' | 'live_widget' | 'observable_cell';
+  dataType?: string;
   artifactId?: string;
   widgetConfig?: {
     type: 'bar' | 'line' | 'area' | 'pie';

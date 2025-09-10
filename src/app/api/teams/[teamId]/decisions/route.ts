@@ -13,7 +13,7 @@ export async function POST(
 ) {
   try {
     const teamId = parseInt(params.teamId)
-    const { statementId, choice, rationale, confidence, deciderName } = await request.json()
+    const { statementId, choice, rationale, confidence, deciderName, evidence_items } = await request.json()
     const statement_id = statementId
     
     console.log('Decision API - teamId:', teamId, 'statementId:', statement_id, 'choice:', choice)
@@ -109,7 +109,8 @@ export async function POST(
         confidence: confidence || 50,
         decider_name: deciderName || 'Unknown',
         is_correct: isCorrect,
-        points_earned: pointsAwarded
+        points_earned: pointsAwarded,
+        evidence_items: evidence_items || []
       })
       .select()
       .single()

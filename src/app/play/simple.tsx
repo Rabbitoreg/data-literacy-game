@@ -72,6 +72,9 @@ export default function PlayPage() {
   const [selectedChoice, setSelectedChoice] = useState<'true' | 'false' | 'unknown'>('true')
   const [confidence, setConfidence] = useState(70)
   const [rationale, setRationale] = useState('')
+  const [selectedEvidence, setSelectedEvidence] = useState<string[]>([])
+  const [storeSearchTerm, setStoreSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -181,7 +184,8 @@ export default function PlayPage() {
           statement_id: statements[currentStatementIndex].id,
           choice: selectedChoice,
           rationale: rationale.trim(),
-          confidence
+          confidence,
+          evidence_items: selectedEvidence
         })
       })
 
@@ -195,6 +199,7 @@ export default function PlayPage() {
         setSelectedChoice('true')
         setRationale('')
         setConfidence(70)
+        setSelectedEvidence([])
       }
     } catch (err) {
       console.error('Failed to submit decision:', err)
@@ -261,6 +266,30 @@ export default function PlayPage() {
 
   const currentStatement = statements[currentStatementIndex]
   const hasDecisionForCurrent = decisions.some(d => d.statement_id === currentStatement?.id)
+  
+  // Get purchased items for evidence selection
+  const purchasedItems = purchases.filter(p => p.status === 'delivered').map(p => p.item)
+  
+  // Filter items for store
+  const categories = Array.from(new Set(items.map(item => item.delivery_type || 'other')))
+  const filteredItems = items.filter(item => {
+    const matchesSearch = !storeSearchTerm || 
+      item.name.toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(storeSearchTerm.toLowerCase())
+    
+    const matchesCategory = selectedCategory === 'all' || 
+      (item.delivery_type || 'other') === selectedCategory
+    
+    return matchesSearch && matchesCategory
+  })
+  
+  const handleEvidenceToggle = (itemId: string) => {
+    setSelectedEvidence(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -343,6 +372,33 @@ export default function PlayPage() {
                     />
                   </div>
 
+                  {purchasedItems.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Supporting Evidence (Select purchased items that support your decision)
+                      </label>
+                      <div className="space-y-2 max-h-32 overflow-y-auto border rounded-lg p-2">
+                        {purchasedItems.map((item) => (
+                          <label key={item.id} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedEvidence.includes(item.id)}
+                              onChange={() => handleEvidenceToggle(item.id)}
+                              className="rounded"
+                            />
+                            <span className="text-sm">{item.name}</span>
+                            <Badge variant="outline" className="text-xs">${item.cost}</Badge>
+                          </label>
+                        ))}
+                      </div>
+                      {selectedEvidence.length > 0 && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          {selectedEvidence.length} evidence item(s) selected
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <Button 
                     onClick={handleSubmitDecision}
                     disabled={!rationale.trim()}
@@ -376,26 +432,67 @@ export default function PlayPage() {
           <Card>
             <CardHeader>
               <CardTitle>Information Store</CardTitle>
+              <div className="space-y-3">
+                {/* Search */}
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Search items..."
+                    value={storeSearchTerm}
+                    onChange={(e) => setStoreSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  />
+                </div>
+                
+                {/* Category Filter */}
+                <div>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="p-3 border rounded-lg">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium">{item.name}</h4>
-                      <Badge variant="outline">${item.cost}</Badge>
+                {filteredItems.length > 0 ? (
+                  filteredItems.map((item) => (
+                    <div key={item.id} className="p-3 border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium">{item.name}</h4>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">${item.cost}</Badge>
+                          {item.delivery_type && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.delivery_type}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{item.description}</p>
+                      <Button
+                        size="sm"
+                        onClick={() => handlePurchaseItem(item.id)}
+                        disabled={!team || team.budget < item.cost}
+                        className="w-full"
+                      >
+                        Purchase
+                      </Button>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                    <Button
-                      size="sm"
-                      onClick={() => handlePurchaseItem(item.id)}
-                      disabled={!team || team.budget < item.cost}
-                      className="w-full"
-                    >
-                      Purchase
-                    </Button>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <p>No items match your search criteria</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>

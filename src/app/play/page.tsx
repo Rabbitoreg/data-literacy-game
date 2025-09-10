@@ -148,6 +148,7 @@ interface Item {
   cost: number
   content: string
   delivery_type: 'instant' | 'timed'
+  data_type?: string
   lead_time_minutes: number
   observablehq_url?: string
 }
@@ -163,6 +164,7 @@ interface Decision {
   is_correct?: boolean
   points_earned: number
   submitted_at: string
+  evidence_items?: string[]
 }
 
 interface Purchase {
@@ -209,6 +211,9 @@ function PlayPageContent() {
   const [selectedChoice, setSelectedChoice] = useState<'true' | 'false' | 'unknown'>('true')
   const [confidence, setConfidence] = useState(70)
   const [rationale, setRationale] = useState('')
+  const [selectedEvidence, setSelectedEvidence] = useState<string[]>([])
+  const [storeSearchTerm, setStoreSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [loading, setLoading] = useState(true)
 
   // Load team data and add player if needed
@@ -350,7 +355,8 @@ function PlayPageContent() {
           choice: selectedChoice,
           rationale: rationale.trim(),
           confidence,
-          deciderName: assignedDecisionMaker || playerName || 'Unknown'
+          deciderName: assignedDecisionMaker || playerName || 'Unknown',
+          evidence_items: selectedEvidence
         })
       })
 
@@ -364,6 +370,7 @@ function PlayPageContent() {
         setRationale('')
         setSelectedChoice('true')
         setConfidence(70)
+        setSelectedEvidence([])
         
         // Decision submitted successfully - the next undecided statement will be automatically calculated
       } else {
@@ -493,6 +500,30 @@ function PlayPageContent() {
     const statement = statements.find(s => s.id === decision.statement_id)
     return { ...decision, statement }
   }).filter(d => d.statement)
+  
+  // Get purchased items for evidence selection
+  const purchasedItems = purchases.filter(p => p.status === 'delivered').map(p => p.item)
+  
+  // Filter items for store
+  const categories = Array.from(new Set(items.map(item => item.data_type || 'other')))
+  const filteredItems = items.filter(item => {
+    const matchesSearch = !storeSearchTerm || 
+      item.name.toLowerCase().includes(storeSearchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(storeSearchTerm.toLowerCase())
+    
+    const matchesCategory = selectedCategory === 'all' || 
+      (item.data_type || 'other') === selectedCategory
+    
+    return matchesSearch && matchesCategory
+  })
+  
+  const handleEvidenceToggle = (itemId: string) => {
+    setSelectedEvidence(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    )
+  }
   
   // Debug logging - force refresh
   console.log('Debug NEW - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
@@ -660,13 +691,36 @@ function PlayPageContent() {
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Rationale</label>
-                    <Textarea
+                    <textarea
                       value={rationale}
                       onChange={(e) => setRationale(e.target.value)}
                       placeholder="Explain your reasoning..."
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       rows={4}
+                      required
                     />
                   </div>
+
+                  {purchasedItems.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select evidence to support your decision (optional):
+                      </label>
+                      <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        {purchasedItems.map((item) => (
+                          <label key={item.id} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={selectedEvidence.includes(item.id)}
+                              onChange={() => handleEvidenceToggle(item.id)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{item.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <Button 
                     onClick={handleSubmitDecision}
@@ -703,35 +757,142 @@ function PlayPageContent() {
                   <CardTitle>Previous Decisions ({completedDecisions.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {completedDecisions.map((decision, index) => (
-                      <div key={decision.id} className="p-4 border rounded-lg bg-gray-50">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">Statement {statements.findIndex(s => s.id === decision.statement_id) + 1}</Badge>
-                            <Badge variant={decision.choice === 'true' ? 'default' : decision.choice === 'false' ? 'destructive' : 'secondary'}>
-                              {decision.choice.toUpperCase()}
-                            </Badge>
-                            <span className="text-sm text-gray-500">
-                              {decision.confidence}% confidence
-                            </span>
+                  <div className="space-y-6">
+                    {completedDecisions.map((decision, index) => {
+                      const statementIndex = statements.findIndex(s => s.id === decision.statement_id) + 1
+                      
+                      // Get evaluations from statement
+                      let evaluations = []
+                      if (decision.statement?.recommended_items) {
+                        try {
+                          const items = decision.statement.recommended_items
+                          if (Array.isArray(items) && items.length > 0) {
+                            const lastItem = items[items.length - 1]
+                            if (typeof lastItem === 'string' && lastItem.startsWith('{')) {
+                              const parsed = JSON.parse(lastItem)
+                              evaluations = parsed.evaluations || []
+                            }
+                          }
+                        } catch (e) {
+                          evaluations = []
+                        }
+                      }
+
+                      return (
+                        <div key={decision.id} className="border rounded-lg bg-white shadow-sm">
+                          {/* Header */}
+                          <div className="p-4 border-b bg-gray-50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="text-sm">
+                                  Statement {statementIndex}
+                                </Badge>
+                                <span className="text-sm text-gray-600">
+                                  {new Date(decision.submitted_at).toLocaleString()}
+                                </span>
+                              </div>
+                              <span className="text-sm text-gray-500">
+                                Decided by: {decision.decider_name}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {new Date(decision.submitted_at).toLocaleString()}
+
+                          {/* Statement */}
+                          <div className="p-4 border-b">
+                            <p className="font-medium text-gray-900 mb-2">
+                              {decision.statement?.text}
+                            </p>
                           </div>
-                        </div>
-                        <p className="text-sm mb-2 font-medium">{decision.statement?.text}</p>
-                        <p className="text-sm text-gray-600">{decision.rationale}</p>
-                        <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                          <span>Decided by: {decision.decider_name}</span>
-                          {decision.points_earned !== undefined && (
-                            <span className={`font-medium ${decision.points_earned > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {decision.points_earned > 0 ? '+' : ''}{decision.points_earned} points
-                            </span>
+
+                          {/* Team Decision */}
+                          <div className="p-4 border-b">
+                            <h4 className="font-semibold text-gray-900 mb-3">Team Decision</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Choice</label>
+                                <div className="mt-1">
+                                  <Badge 
+                                    variant={decision.choice === 'true' ? 'default' : decision.choice === 'false' ? 'destructive' : 'secondary'}
+                                    className="text-lg px-3 py-1"
+                                  >
+                                    {decision.choice.toUpperCase()}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Confidence</label>
+                                <div className="mt-1 text-lg font-semibold text-gray-900">
+                                  {decision.confidence}%
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-600">Points Earned</label>
+                                <div className="mt-1">
+                                  <span className={`text-lg font-bold ${
+                                    decision.points_earned > 0 ? 'text-green-600' : 
+                                    decision.points_earned < 0 ? 'text-red-600' : 'text-gray-600'
+                                  }`}>
+                                    {decision.points_earned > 0 ? '+' : ''}{decision.points_earned}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <label className="text-sm font-medium text-gray-600">Rationale</label>
+                              <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded-md">
+                                {decision.rationale}
+                              </p>
+                            </div>
+
+                            {/* Evidence Items */}
+                            {decision.evidence_items && decision.evidence_items.length > 0 && (
+                              <div className="mt-4">
+                                <label className="text-sm font-medium text-gray-600">Evidence Used</label>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {decision.evidence_items.map((itemId: string, idx: number) => {
+                                    const item = items.find(i => i.id === itemId)
+                                    return item ? (
+                                      <Badge key={idx} variant="outline" className="text-xs">
+                                        {item.name}
+                                      </Badge>
+                                    ) : null
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Acceptable Answers */}
+                          {evaluations.length > 0 && (
+                            <div className="p-4">
+                              <h4 className="font-semibold text-gray-900 mb-3">Acceptable Answers</h4>
+                              <div className="space-y-2">
+                                {evaluations.map((evaluation: any, evalIdx: number) => (
+                                  <div key={evalIdx} className="flex items-center justify-between p-2 rounded-md bg-gray-50">
+                                    <div className="flex items-center gap-3">
+                                      <Badge 
+                                        variant={evaluation.choice === 'true' ? 'default' : evaluation.choice === 'false' ? 'destructive' : 'secondary'}
+                                        className="text-sm"
+                                      >
+                                        {evaluation.choice.toUpperCase()}
+                                      </Badge>
+                                      <span className="text-sm text-gray-700">{evaluation.feedback}</span>
+                                    </div>
+                                    <span className={`text-sm font-semibold ${
+                                      evaluation.points > 0 ? 'text-green-600' : 
+                                      evaluation.points < 0 ? 'text-red-600' : 'text-gray-600'
+                                    }`}>
+                                      {evaluation.points > 0 ? '+' : ''}{evaluation.points} pts
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -762,8 +923,36 @@ function PlayPageContent() {
                     <CardTitle>Information Store</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* Store Filters */}
+                    <div className="mb-6 space-y-4">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            placeholder="Search items..."
+                            value={storeSearchTerm}
+                            onChange={(e) => setStoreSearchTerm(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="sm:w-48">
+                          <select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="all">All Categories</option>
+                            {categories.map(category => (
+                              <option key={category} value={category}>
+                                {category.charAt(0).toUpperCase() + category.slice(1)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
-                      {items.map((item) => {
+                      {filteredItems.map((item) => {
                         const purchase = purchases.find(p => p.item_id === item.id)
                         const isPurchased = !!purchase
                         
