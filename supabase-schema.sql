@@ -157,18 +157,44 @@ UPDATE items SET observable_config = '{
   "height": 400  
 }' WHERE id = 'I509';
 
--- Enable Row Level Security (optional but recommended)
+-- Enable Row Level Security
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE statements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rounds ENABLE ROW LEVEL SECURITY;
-ALTER TABLE telemetry ENABLE ROW LEVEL SECURITY;
 
--- Create policies (allow all for now - customize as needed)
-CREATE POLICY "Allow all operations" ON sessions FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON teams FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON purchases FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON decisions FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON rounds FOR ALL USING (true);
-CREATE POLICY "Allow all operations" ON telemetry FOR ALL USING (true);
+-- Create secure policies for game data
+-- Sessions: Read-only for all users
+CREATE POLICY "Allow read sessions" ON sessions FOR SELECT USING (true);
+CREATE POLICY "Allow insert sessions" ON sessions FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow update sessions" ON sessions FOR UPDATE USING (true);
+
+-- Teams: Allow operations on teams (game is public)
+CREATE POLICY "Allow all team operations" ON teams FOR ALL USING (true);
+
+-- Statements: Read-only (game content)
+CREATE POLICY "Allow read statements" ON statements FOR SELECT USING (true);
+
+-- Items: Read-only (store content)
+CREATE POLICY "Allow read items" ON items FOR SELECT USING (true);
+
+-- Purchases: Teams can only access their own purchases
+CREATE POLICY "Teams can manage own purchases" ON purchases 
+  FOR ALL USING (
+    team_id IN (SELECT id FROM teams)
+  );
+
+-- Decisions: Teams can only access their own decisions
+CREATE POLICY "Teams can manage own decisions" ON decisions 
+  FOR ALL USING (
+    team_id IN (SELECT id FROM teams)
+  );
+
+-- Rounds: Teams can only access their own rounds
+CREATE POLICY "Teams can manage own rounds" ON rounds 
+  FOR ALL USING (
+    team_id IN (SELECT id FROM teams)
+  );
