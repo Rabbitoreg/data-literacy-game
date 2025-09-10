@@ -205,6 +205,7 @@ export default function StatementEvaluationManager({ statement, onClose }: State
                     type="number"
                     value={trueEval.points}
                     onChange={(e) => setTrueEval({ ...trueEval, points: parseInt(e.target.value) || 0 })}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
                 </div>
@@ -250,6 +251,7 @@ export default function StatementEvaluationManager({ statement, onClose }: State
                     type="number"
                     value={falseEval.points}
                     onChange={(e) => setFalseEval({ ...falseEval, points: parseInt(e.target.value) || 0 })}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
                 </div>
@@ -295,6 +297,7 @@ export default function StatementEvaluationManager({ statement, onClose }: State
                     type="number"
                     value={unknownEval.points}
                     onChange={(e) => setUnknownEval({ ...unknownEval, points: parseInt(e.target.value) || 0 })}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
                 </div>
