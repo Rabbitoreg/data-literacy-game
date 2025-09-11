@@ -248,10 +248,7 @@ function PlayPageContent() {
           }
         }
         
-        console.log('Team data loaded:', data.team)
-        console.log('Team score:', data.team?.score)
-        console.log('Previous score:', previousScore)
-        console.log('Current team score before update:', team?.score)
+        // Team data loaded
         setTeam(data.team)
         
         // Add player to team if name is provided and not already in team
@@ -441,14 +438,7 @@ function PlayPageContent() {
   const handleSubmitDecision = async () => {
     if (!currentStatement || !team || !rationale.trim()) return
 
-    console.log('Submitting decision:', {
-      teamNumber: team.team_number,
-      statementId: currentStatement.id,
-      choice: selectedChoice,
-      rationale: rationale.trim(),
-      confidence,
-      deciderName: assignedDecisionMaker || playerName || 'Unknown'
-    })
+    // Submitting decision
 
     try {
       const response = await fetch(`/api/teams/${team.team_number}/decisions`, {
@@ -464,9 +454,9 @@ function PlayPageContent() {
         })
       })
 
-      console.log('Decision response status:', response.status)
-
       if (response.ok) {
+        const result = await response.json()
+        
         // Reload decisions and team data to update UI and show score changes
         await loadDecisions()
         await loadTeamData()
@@ -673,13 +663,7 @@ function PlayPageContent() {
     )
   }
   
-  // Debug logging - force refresh
-  console.log('Debug NEW - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
-  console.log('Debug NEW - decisions:', decisions, 'completedDecisions:', completedDecisions.length, 'timestamp:', Date.now())
-  console.log('Debug - currentStatement for hint:', currentStatement?.id)
-  console.log('Debug - currentStatement object:', currentStatement)
-  console.log('Debug - purchasedHints:', Array.from(purchasedHints))
-  console.log('Debug - has hint for current statement:', currentStatement ? purchasedHints.has(currentStatement.id) : 'no current statement')
+  // Game state ready
 
   // Show item detail view if viewing an item
   if (viewingItem) {
@@ -1001,12 +985,31 @@ function PlayPageContent() {
                                     const evaluation = evaluations.find((e: any) => e.choice === decision.choice)
                                     if (evaluation) {
                                       const basePoints = evaluation.points
-                                      const confidenceMultiplier = decision.confidence / 100
-                                      return (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {basePoints} × {decision.confidence}% = {decision.points_earned}
-                                        </div>
-                                      )
+                                      const originalConfidence = decision.confidence
+                                      const hasEvidence = decision.evidence_items && decision.evidence_items.length > 0
+                                      
+                                      // Calculate if evidence boost was applied
+                                      const expectedPointsWithoutBoost = Math.round(basePoints * (originalConfidence / 100))
+                                      const actualPoints = decision.points_earned
+                                      const evidenceBoostApplied = hasEvidence && actualPoints > expectedPointsWithoutBoost
+                                      
+                                      if (evidenceBoostApplied) {
+                                        // Calculate the effective confidence that would result in these points
+                                        const effectiveConfidence = Math.round((actualPoints / basePoints) * 100)
+                                        const boost = effectiveConfidence - originalConfidence
+                                        
+                                        return (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {basePoints} × ({originalConfidence}% + {boost}% evidence boost) = {actualPoints}
+                                          </div>
+                                        )
+                                      } else {
+                                        return (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {basePoints} × {originalConfidence}% = {actualPoints}
+                                          </div>
+                                        )
+                                      }
                                     }
                                     return null
                                   })()}

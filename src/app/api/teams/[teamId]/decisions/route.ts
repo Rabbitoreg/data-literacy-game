@@ -16,7 +16,7 @@ export async function POST(
     const { statementId, choice, rationale, confidence, deciderName, evidence_items } = await request.json()
     const statement_id = statementId
     
-    console.log('Decision API - teamId:', teamId, 'statementId:', statement_id, 'choice:', choice)
+    // Processing decision submission
     
     if (isNaN(teamId)) {
       return NextResponse.json({ error: 'Invalid team ID' }, { status: 400 })
@@ -57,17 +57,45 @@ export async function POST(
     }
 
     // Get statement and check for evaluations in recommended_items
-    const { data: statement } = await supabase
+    const { data: statement, error: statementError } = await supabase
       .from('statements')
       .select('*')
       .eq('id', statement_id)
       .single()
+    
+    // Statement lookup completed
 
     let isCorrect = false
     let pointsAwarded = 0
     let feedback = ''
+    let confidenceBoost = 0
 
     if (statement) {
+      // Check if correct evidence items were used (10% confidence boost)
+      console.log('Evidence check - evidence_items:', evidence_items)
+      console.log('Evidence check - statement.recommended_items:', statement.recommended_items)
+      
+      if (evidence_items && evidence_items.length > 0 && statement.recommended_items) {
+        const recommendedItems = statement.recommended_items.filter((item: string) => !item.startsWith('{'))
+        console.log('Evidence check - filtered recommendedItems:', recommendedItems)
+        
+        // Check for exact matches
+        const hasCorrectEvidence = evidence_items.some((item: string) => recommendedItems.includes(item))
+        console.log('Evidence check - hasCorrectEvidence (exact):', hasCorrectEvidence)
+        
+        // Debug: show what we're comparing
+        console.log('Evidence check - comparing:', { evidence_items, recommendedItems })
+        
+        if (hasCorrectEvidence) {
+          confidenceBoost = 10
+          console.log(`Evidence boost applied: +${confidenceBoost}% confidence for using correct evidence`)
+        } else {
+          console.log('No evidence boost - no matching items found')
+        }
+      } else {
+        console.log('No evidence boost - missing evidence_items or recommended_items')
+      }
+
       // Check for evaluations stored in recommended_items as JSON
       let evaluations = []
       try {
@@ -84,7 +112,7 @@ export async function POST(
       // Find evaluation for this choice
       const evaluation = evaluations.find((e: any) => e.choice === choice.toLowerCase())
       
-      // Calculate base points and apply confidence multiplier
+      // Calculate base points and apply confidence multiplier (with evidence boost)
       let basePoints = 0
       if (evaluation) {
         isCorrect = evaluation.isCorrect
@@ -98,8 +126,15 @@ export async function POST(
         feedback = isCorrect ? 'Correct answer!' : 'Incorrect answer.'
       }
       
-      // Apply confidence multiplier: final score = base points * (confidence / 100)
-      pointsAwarded = Math.round(basePoints * (confidence / 100))
+      // Apply confidence multiplier with evidence boost: final score = base points * ((confidence + boost) / 100)
+      const effectiveConfidence = Math.min(100, confidence + confidenceBoost)
+      pointsAwarded = Math.round(basePoints * (effectiveConfidence / 100))
+      
+      console.log(`Points calculation: basePoints=${basePoints}, confidence=${confidence}, confidenceBoost=${confidenceBoost}, effectiveConfidence=${effectiveConfidence}, pointsAwarded=${pointsAwarded}`)
+      
+      if (confidenceBoost > 0) {
+        feedback += ` Evidence bonus: +${confidenceBoost}% confidence boost for using recommended evidence.`
+      }
     }
 
     // Create decision with evaluation results

@@ -23,6 +23,14 @@ interface Statement {
   text: string
   topic: string
   truthLabel: string
+  recommended_items?: string[]
+}
+
+interface Item {
+  id: string
+  name: string
+  description: string
+  cost: number
 }
 
 interface StatementEvaluationManagerProps {
@@ -35,6 +43,9 @@ export default function StatementEvaluationManager({ statement, onClose }: State
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [items, setItems] = useState<Item[]>([])
+  const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [itemsLoading, setItemsLoading] = useState(true)
 
   // Form state for each choice
   const [trueEval, setTrueEval] = useState({ isCorrect: false, points: 0, feedback: '' })
@@ -48,6 +59,7 @@ export default function StatementEvaluationManager({ statement, onClose }: State
 
   useEffect(() => {
     loadEvaluations()
+    loadItems()
   }, [statement.id])
 
   const loadEvaluations = async () => {
@@ -84,6 +96,27 @@ export default function StatementEvaluationManager({ statement, onClose }: State
     }
   }
 
+  const loadItems = async () => {
+    try {
+      setItemsLoading(true)
+      const response = await fetch('/api/items')
+      if (response.ok) {
+        const data = await response.json()
+        setItems(data.items || [])
+        
+        // Load current recommended items for this statement
+        if (statement.recommended_items) {
+          const currentItems = statement.recommended_items.filter((item: string) => !item.startsWith('{'))
+          setSelectedItems(currentItems)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load items:', err)
+    } finally {
+      setItemsLoading(false)
+    }
+  }
+
   const saveEvaluations = async () => {
     try {
       setSaving(true)
@@ -99,6 +132,13 @@ export default function StatementEvaluationManager({ statement, onClose }: State
       console.log('Saving evaluations:', evaluationsToSave)
       console.log('Saving to URL:', `/api/statements/${statement.id}/evaluations/bulk`)
       console.log('Statement ID being used:', statement.id)
+
+      // First save the recommended items
+      await fetch(`/api/statements/${statement.id}/recommended-items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recommended_items: selectedItems })
+      })
 
       const response = await fetch(`/api/statements/${statement.id}/evaluations/bulk`, {
         method: 'POST',
@@ -199,14 +239,69 @@ export default function StatementEvaluationManager({ statement, onClose }: State
             </div>
           )}
 
-          <div className="flex gap-4">
-            <Button onClick={setDefaultScoring} variant="outline">
-              Set Default Scoring
-            </Button>
-            <Button onClick={saveEvaluations} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Evaluations'}
-            </Button>
-          </div>
+          <Tabs defaultValue="scoring" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="scoring">Scoring Configuration</TabsTrigger>
+              <TabsTrigger value="evidence">Evidence Items</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="evidence" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recommended Evidence Items</CardTitle>
+                  <p className="text-sm text-gray-600">
+                    Select which purchase items are recommended for this statement. Teams get a 10% confidence boost when they use the correct evidence.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {itemsLoading ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-600">Loading items...</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {items.map((item) => (
+                        <div key={item.id} className="flex items-start space-x-3 p-3 border rounded-lg">
+                          <input
+                            type="checkbox"
+                            id={`item-${item.id}`}
+                            checked={selectedItems.includes(item.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedItems([...selectedItems, item.id])
+                              } else {
+                                setSelectedItems(selectedItems.filter(id => id !== item.id))
+                              }
+                            }}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <Label htmlFor={`item-${item.id}`} className="font-medium cursor-pointer">
+                              {item.name}
+                            </Label>
+                            <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                            <Badge variant="outline" className="mt-2 text-xs">
+                              ${item.cost}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="scoring" className="mt-6">
+              <div className="flex gap-4 mb-6">
+                <Button onClick={setDefaultScoring} variant="outline">
+                  Set Default Scoring
+                </Button>
+                <Button onClick={saveEvaluations} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Configuration'}
+                </Button>
+              </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* TRUE Form */}
@@ -369,6 +464,8 @@ export default function StatementEvaluationManager({ statement, onClose }: State
               </div>
             </div>
           )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
