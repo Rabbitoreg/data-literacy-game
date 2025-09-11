@@ -79,7 +79,7 @@ export function StoreAccordion({
               <AccordionContent className="px-4 pb-4">
                 <div className="space-y-3">
                   {categoryItems.map((item) => {
-                    const canAfford = budgetRemaining >= item.costMoney
+                    const canAfford = budgetRemaining >= item.cost
                     const alreadyPurchased = purchasedItems.includes(item.id)
                     const isAvailable = canPurchase && canAfford && !alreadyPurchased
                     
@@ -97,7 +97,7 @@ export function StoreAccordion({
                           <div className="flex flex-col items-end gap-1 ml-3">
                             <div className="flex items-center gap-1 text-xs">
                               <DollarSign className="h-3 w-3" />
-                              {formatCurrency(item.costMoney)}
+                              {formatCurrency(item.cost)}
                             </div>
                             <div className="flex items-center gap-1 text-xs">
                               <Clock className="h-3 w-3" />

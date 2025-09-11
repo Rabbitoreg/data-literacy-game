@@ -323,20 +323,14 @@ export class GameSocketServer {
       })),
       storeItems: items.map(item => ({
         id: item.id,
-        sessionId: sessionId,
         name: item.name,
-        category: 'data_artifact' as const,
-        costMoney: item.cost,
-        costTimeMin: item.lead_time_minutes,
+        description: item.description || '',
+        cost: item.cost,
+        costTimeMin: item.lead_time_minutes || 0,
+        category: item.category || 'data_artifact',
+        dataType: item.data_type || 'artifact',
         deliveryType: item.delivery_type,
-        observableConfig: item.observable_config ? {
-          notebookId: item.observable_config.notebookId || '',
-          cells: item.observable_config.cells || [],
-          mode: 'iframe' as const,
-          height: item.observable_config.height || 400
-        } : undefined,
-        description: item.description,
-        isPersistent: false
+        isPersistent: item.is_persistent || false
       })),
       macroTimer: {
         remaining: 0,
@@ -401,20 +395,14 @@ export class GameSocketServer {
       })),
       availableItems: items.map((item: any) => ({
         id: item.id,
-        sessionId: teamId,
         name: item.name,
-        category: 'data_artifact' as const,
-        costMoney: item.cost,
-        costTimeMin: item.lead_time_minutes,
+        description: item.description || '',
+        cost: item.cost,
+        costTimeMin: item.lead_time_minutes || 0,
+        category: item.category || 'data_artifact',
+        dataType: item.data_type || 'artifact',
         deliveryType: item.delivery_type,
-        observableConfig: item.observable_config ? {
-          notebookId: item.observable_config.notebookId || '',
-          cells: item.observable_config.cells || [],
-          mode: 'iframe' as const,
-          height: item.observable_config.height || 400
-        } : undefined,
-        description: item.description,
-        isPersistent: false
+        isPersistent: item.is_persistent || false
       })),
       deliveryTimeline: []
     }

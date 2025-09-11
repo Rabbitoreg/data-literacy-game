@@ -46,8 +46,11 @@ export interface StoreItem {
   name: string;
   description: string;
   cost: number;
+  costTimeMin: number;
   category: string;
   dataType: string;
+  deliveryType?: string;
+  isPersistent?: boolean;
   prerequisite_item_id?: string | null;
   purchaseCount?: number;
 }

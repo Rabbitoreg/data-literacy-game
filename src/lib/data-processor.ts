@@ -93,17 +93,15 @@ export class DataProcessor {
 
       return {
         id: row.id,
-        sessionId,
         name: row.name,
-        category: row.category as any,
-        costMoney: parseInt(row.cost_money),
-        costTimeMin: parseInt(row.cost_time_min),
-        deliveryType: row.delivery_type as any,
-        artifactId: row.artifact_id || undefined,
-        widgetConfig,
-        observableConfig,
         description: row.description || '',
-        isPersistent: row.is_persistent === 'true' || row.is_persistent === '1'
+        cost: parseInt(row.cost_money),
+        costTimeMin: parseInt(row.cost_time_min),
+        category: row.category as any,
+        dataType: row.data_type || '',
+        deliveryType: row.delivery_type as any,
+        isPersistent: row.is_persistent === 'true' || row.is_persistent === '1',
+        prerequisite_item_id: row.prerequisite_item_id || null
       }
     })
   }
@@ -187,85 +185,68 @@ export class DataProcessor {
     return [
       {
         id: 'I101',
-        sessionId,
         name: 'Interview: Learning Team',
-        category: 'people_process',
-        costMoney: 250,
-        costTimeMin: 3,
-        deliveryType: 'artifact',
-        artifactId: 'int_learning_team.pdf',
         description: 'Collection caveats, instrumentation details',
+        cost: 250,
+        costTimeMin: 3,
+        category: 'people_process',
+        dataType: 'artifact',
+        deliveryType: 'artifact',
         isPersistent: false
       },
       {
         id: 'I212',
-        sessionId,
         name: 'Data Dictionary',
-        category: 'data_artifact',
-        costMoney: 120,
-        costTimeMin: 1,
-        deliveryType: 'artifact',
-        artifactId: 'data_dictionary.pdf',
         description: 'Field definitions & transforms',
+        cost: 120,
+        costTimeMin: 1,
+        category: 'data_artifact',
+        dataType: 'artifact',
+        deliveryType: 'artifact',
         isPersistent: true
       },
       {
         id: 'I303',
-        sessionId,
         name: 'Dashboard: Segment Drilldown',
-        category: 'analytics_view',
-        costMoney: 180,
-        costTimeMin: 2,
-        deliveryType: 'live_widget',
-        artifactId: 'seg_drill_q3.png',
-        widgetConfig: {
-          type: 'bar',
-          dim: 'region',
-          metric: 'avg_deal_size'
-        },
         description: 'Choose 1 segment (region/role)',
+        cost: 180,
+        costTimeMin: 2,
+        category: 'analytics_view',
+        dataType: 'widget',
+        deliveryType: 'live_widget',
         isPersistent: false
       },
       {
         id: 'I407',
-        sessionId,
         name: 'Randomization Check',
-        category: 'quality_check',
-        costMoney: 200,
-        costTimeMin: 4,
-        deliveryType: 'artifact',
-        artifactId: 'rand_check_table.pdf',
         description: 'Baseline equivalence analysis',
+        cost: 200,
+        costTimeMin: 4,
+        category: 'quality_check',
+        dataType: 'artifact',
+        deliveryType: 'artifact',
         isPersistent: false
       },
       {
         id: 'I509',
-        sessionId,
         name: 'Promo Calendar',
-        category: 'context_intel',
-        costMoney: 160,
-        costTimeMin: 2,
-        deliveryType: 'artifact',
-        artifactId: 'promo_calendar.png',
         description: 'Overlapping promos timeline',
+        cost: 160,
+        costTimeMin: 2,
+        category: 'context_intel',
+        dataType: 'artifact',
+        deliveryType: 'artifact',
         isPersistent: false
       },
       {
         id: 'I601',
-        sessionId,
         name: 'Learning Dashboard: Win Rate (Observable)',
-        category: 'analytics_view',
-        costMoney: 160,
+        description: 'Interactive win rate analysis',
+        cost: 160,
         costTimeMin: 2,
+        category: 'analytics_view',
+        dataType: 'observable',
         deliveryType: 'observable_cell',
-        artifactId: 'learning_winrate.png',
-        observableConfig: {
-          notebookId: 'd/fb670ca5f330a7e9',
-          cells: ['chart_winrate'],
-          mode: 'iframe',
-          height: 540
-        },
-        description: 'Focused cell from Learning Dashboard',
         isPersistent: false
       }
     ]
