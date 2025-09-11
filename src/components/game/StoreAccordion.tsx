@@ -86,7 +86,7 @@ export function StoreAccordion({
                     return (
                       <div 
                         key={item.id}
-                        className="border rounded-lg p-3 space-y-2"
+                        className="border rounded-lg p-3 space-y-2 transition-all duration-200 hover:border-gray-300 hover:shadow-sm"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

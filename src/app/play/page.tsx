@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, memo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, ShoppingCart, Eye, Users, DollarSign, TrendingUp, TrendingDown, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ShoppingCart, Eye, Users, DollarSign, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -726,7 +726,7 @@ function PlayPageContent() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
-              Store & Purchases
+              Evidence Store & Purchases
             </TabsTrigger>
           </TabsList>
           
@@ -802,7 +802,7 @@ function PlayPageContent() {
                       </label>
                       <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
                         {purchasedItems.map((item) => (
-                          <label key={item.id} className="flex items-center space-x-2 cursor-pointer">
+                          <label key={item.id} className="flex items-center space-x-2 cursor-pointer hover:bg-blue-50 p-2 rounded transition-colors duration-200 border border-transparent hover:border-blue-200">
                             <input
                               type="checkbox"
                               checked={selectedEvidence.includes(item.id)}
@@ -1121,9 +1121,8 @@ function PlayPageContent() {
                               size="sm"
                               onClick={() => isPurchased ? handleViewItem(item) : handlePurchaseItem(item.id)}
                               disabled={!team || (!isPurchased && (team.budget ?? 0) < item.cost)}
-                              className="w-full"
+                              className={`w-full transition-all duration-200 ${isPurchased ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700' : ''}`}
                               variant={isPurchased ? "default" : "default"}
-                              style={isPurchased ? { backgroundColor: '#10b981', borderColor: '#10b981', color: 'white' } : {}}
                             >
                               {isPurchased ? (
                                 <>
