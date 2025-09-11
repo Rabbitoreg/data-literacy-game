@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, memo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { ChevronLeft, ChevronRight, ShoppingCart, Eye, Users, DollarSign, TrendingUp, TrendingDown, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -204,10 +205,12 @@ function PlayPageContent() {
   const [items, setItems] = useState<Item[]>([])
   const [decisions, setDecisions] = useState<Decision[]>([])
   const [purchases, setPurchases] = useState<Purchase[]>([])
-  const [viewingItem, setViewingItem] = useState<Item | null>(null)
-  const [showItemView, setShowItemView] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
+  const [viewingItem, setViewingItem] = useState<Item | null>(null)
+  const [previousScore, setPreviousScore] = useState<number | null>(null)
+  const [scoreChange, setScoreChange] = useState<'up' | 'down' | null>(null)
+  const [purchasedHints, setPurchasedHints] = useState<Set<string>>(new Set())
 
   const [selectedChoice, setSelectedChoice] = useState<'true' | 'false' | 'unknown'>('true')
   const [confidence, setConfidence] = useState(70)
@@ -215,7 +218,6 @@ function PlayPageContent() {
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([])
   const [storeSearchTerm, setStoreSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [loading, setLoading] = useState(true)
 
   // Load team data and add player if needed
   const loadTeamData = async () => {
@@ -224,6 +226,21 @@ function PlayPageContent() {
       const response = await fetch(`/api/teams/${teamNumber}`)
       if (response.ok) {
         const data = await response.json()
+        
+        // Track score changes for arrow indicator
+        if (team && team.score !== data.team.score) {
+          setPreviousScore(team.score)
+          if (data.team.score > team.score) {
+            setScoreChange('up')
+          } else if (data.team.score < team.score) {
+            setScoreChange('down')
+          }
+        }
+        
+        console.log('Team data loaded:', data.team)
+        console.log('Team score:', data.team?.score)
+        console.log('Previous score:', previousScore)
+        console.log('Current team score before update:', team?.score)
         setTeam(data.team)
         
         // Add player to team if name is provided and not already in team
@@ -233,6 +250,21 @@ function PlayPageContent() {
       }
     } catch (err) {
       console.error('Failed to load team data:', err)
+    }
+  }
+
+  // Load purchased hints for the team
+  const loadPurchasedHints = async () => {
+    if (!teamNumber) return
+    try {
+      const response = await fetch(`/api/teams/${teamNumber}/hints`)
+      if (response.ok) {
+        const data = await response.json()
+        const hintIds = data.hints.map((hint: any) => hint.statement_id)
+        setPurchasedHints(new Set(hintIds))
+      }
+    } catch (err) {
+      console.error('Failed to load purchased hints:', err)
     }
   }
 
@@ -282,6 +314,19 @@ function PlayPageContent() {
     }
   }
 
+  const loadItems = async () => {
+    if (!team?.id) return
+    try {
+      const itemsResponse = await fetch(`/api/items?teamId=${team.id}`)
+      if (itemsResponse.ok) {
+        const itemsData = await itemsResponse.json()
+        setItems(itemsData.items || [])
+      }
+    } catch (err) {
+      console.error('Error loading items:', err)
+    }
+  }
+
   // Load initial data
   useEffect(() => {
     if (!teamNumber) return
@@ -299,25 +344,27 @@ function PlayPageContent() {
           setStatements(statementsData.statements || [])
         }
 
-        // Load items
-        const itemsResponse = await fetch('/api/items')
-        if (itemsResponse.ok) {
-          const itemsData = await itemsResponse.json()
-          setItems(itemsData.items || [])
-        }
-
         await loadDecisions()
+        await loadItems()
         await loadPurchases()
-
+        await loadPurchasedHints()
         setLoading(false)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data')
+        console.error('Error loading data:', err)
+        setError('Failed to load game data')
         setLoading(false)
       }
     }
 
     loadData()
   }, [teamNumber])
+
+  // Load items when team data is available
+  useEffect(() => {
+    if (team?.id) {
+      loadItems()
+    }
+  }, [team?.id])
 
   // Setup polling for updates (Vercel-compatible)
   useEffect(() => {
@@ -364,8 +411,9 @@ function PlayPageContent() {
       console.log('Decision response status:', response.status)
 
       if (response.ok) {
-        // Reload decisions to update UI
+        // Reload decisions and team data to update UI and show score changes
         await loadDecisions()
+        await loadTeamData()
         
         // Reset form
         setRationale('')
@@ -404,34 +452,64 @@ function PlayPageContent() {
         throw new Error('Failed to purchase item')
       }
 
-      // Reload data to reflect the purchase
+      // Refresh team data, purchases, and items after successful purchase
       await loadTeamData()
       await loadPurchases()
+      await loadItems() // Reload items to show newly available items based on prerequisites
     } catch (error) {
       console.error('Error purchasing item:', error)
     }
   }
 
   const handleViewItem = (item: Item) => {
-    // Find the purchase data for this item to get the most up-to-date info
-    const purchaseData = purchases.find(p => p.item_id === item.id)
-    if (purchaseData && purchaseData.item) {
-      // Type assertion to ensure the item has all required fields
-      const fullItem: Item = {
-        ...purchaseData.item,
-        delivery_type: (purchaseData.item as any).delivery_type || 'instant',
-        lead_time_minutes: (purchaseData.item as any).lead_time_minutes || 0
-      }
-      setViewingItem(fullItem)
+    if (viewingItem?.id === item.id) {
+      setViewingItem(null)
     } else {
-      setViewingItem(item)
+      // Find the purchase data for this item to get the most up-to-date info
+      const purchaseData = purchases.find(p => p.item_id === item.id)
+      if (purchaseData && purchaseData.item) {
+        // Type assertion to ensure the item has all required fields
+        const fullItem: Item = {
+          ...purchaseData.item,
+          delivery_type: (purchaseData.item as any).delivery_type || 'instant',
+          lead_time_minutes: (purchaseData.item as any).lead_time_minutes || 0
+        }
+        setViewingItem(fullItem)
+      } else {
+        setViewingItem(item)
+      }
     }
-    setShowItemView(true)
   }
 
   const handleBackToGame = () => {
-    setShowItemView(false)
     setViewingItem(null)
+  }
+
+  const handlePurchaseHint = async (statementId: string) => {
+    console.log('handlePurchaseHint called with:', statementId, typeof statementId)
+    
+    if (!team || (team.budget ?? 0) < 10) return
+    
+    try {
+      console.log('Purchasing hint for statement:', statementId, 'team:', team.team_number)
+      const response = await fetch(`/api/teams/${team.team_number}/purchase-hint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statementId })
+      })
+
+      console.log('Purchase hint response:', response.status)
+      
+      if (response.ok) {
+        setPurchasedHints(prev => new Set(Array.from(prev).concat(statementId)))
+        await loadTeamData() // Refresh team data to update budget
+      } else {
+        const errorData = await response.json()
+        console.error('Purchase hint error:', errorData)
+      }
+    } catch (error) {
+      console.error('Error purchasing hint:', error)
+    }
   }
 
   if (!teamNumber) {
@@ -529,9 +607,13 @@ function PlayPageContent() {
   // Debug logging - force refresh
   console.log('Debug NEW - statements:', statements.length, 'currentIndex:', currentStatementIndex, 'currentStatement:', currentStatement)
   console.log('Debug NEW - decisions:', decisions, 'completedDecisions:', completedDecisions.length, 'timestamp:', Date.now())
+  console.log('Debug - currentStatement for hint:', currentStatement?.id)
+  console.log('Debug - currentStatement object:', currentStatement)
+  console.log('Debug - purchasedHints:', Array.from(purchasedHints))
+  console.log('Debug - has hint for current statement:', currentStatement ? purchasedHints.has(currentStatement.id) : 'no current statement')
 
   // Show item detail view if viewing an item
-  if (showItemView && viewingItem) {
+  if (viewingItem) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-4xl mx-auto">
@@ -565,7 +647,7 @@ function PlayPageContent() {
             {/* Content */}
             <Card>
               <CardHeader>
-                <CardTitle>Content</CardTitle>
+                <CardTitle>Context</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 whitespace-pre-wrap">{viewingItem.content || 'No content available'}</p>
@@ -609,8 +691,19 @@ function PlayPageContent() {
               <div className="text-sm text-gray-500">Budget</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{team?.score}</div>
-              <div className="text-sm text-gray-500">Score</div>
+              <div className="flex items-center justify-center gap-2">
+                <div className="text-2xl font-bold text-blue-600">{team?.score}</div>
+                {scoreChange && (
+                  <>
+                    {scoreChange === 'up' ? (
+                      <TrendingUp className="w-5 h-5 text-green-500" />
+                    ) : scoreChange === 'down' ? (
+                      <TrendingDown className="w-5 h-5 text-red-500" />
+                    ) : null}
+                  </>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">Total Score</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{decisions.length}</div>
@@ -914,14 +1007,46 @@ function PlayPageContent() {
           )}
         </div>
 
-              {/* Charts and additional game content can go here */}
+              {/* Hint section */}
               <div className="col-span-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Observable HQ Charts</CardTitle>
+                    <CardTitle>Hint</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-500 text-sm">Charts will be integrated here</p>
+                    {currentStatement && purchasedHints.has(currentStatement.id) ? (
+                      <div className="space-y-2">
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-800">
+                            {(currentStatement as any).statement_hint || 'No hint available for this statement.'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-gray-600 text-sm">
+                          Need help with this statement? Purchase a hint to get additional guidance.
+                        </p>
+                        <Button
+                          onClick={() => {
+                            const statementId = currentStatement?.id;
+                            console.log('Button onClick - statementId:', statementId);
+                            if (statementId) {
+                              handlePurchaseHint(statementId);
+                            }
+                          }}
+                          disabled={!team || (team.budget ?? 0) < 10 || !currentStatement}
+                          className="w-full"
+                          variant="outline"
+                        >
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          Purchase Hint (10 coins)
+                        </Button>
+                        {team && (team.budget ?? 0) < 10 && (
+                          <p className="text-red-500 text-xs">Insufficient budget</p>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

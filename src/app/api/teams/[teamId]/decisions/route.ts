@@ -124,6 +124,20 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to create decision' }, { status: 500 })
     }
 
+    // Update team's total score by adding the points earned
+    const newTotalScore = (team.score || 0) + pointsAwarded
+    const { error: scoreUpdateError } = await supabase
+      .from('teams')
+      .update({ score: newTotalScore })
+      .eq('id', team.id)
+
+    if (scoreUpdateError) {
+      console.error('Error updating team score:', scoreUpdateError)
+      // Don't fail the request, just log the error
+    }
+
+    console.log(`Team ${teamId} score updated: ${team.score || 0} + ${pointsAwarded} = ${newTotalScore}`)
+
     return NextResponse.json({ decision: decision_record })
 
   } catch (error) {

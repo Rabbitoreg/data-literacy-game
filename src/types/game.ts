@@ -43,27 +43,13 @@ export interface Statement {
 
 export interface StoreItem {
   id: string;
-  sessionId: string;
   name: string;
-  category: 'people_process' | 'data_artifact' | 'analytics_view' | 'quality_check' | 'context_intel';
-  costMoney: number;
-  costTimeMin: number;
-  deliveryType: 'artifact' | 'live_widget' | 'observable_cell';
-  dataType?: string;
-  artifactId?: string;
-  widgetConfig?: {
-    type: 'bar' | 'line' | 'area' | 'pie';
-    dim: string;
-    metric: string;
-  };
-  observableConfig?: {
-    notebookId: string;
-    cells: string[];
-    mode: 'iframe' | 'runtime';
-    height: number;
-  };
   description: string;
-  isPersistent: boolean;
+  cost: number;
+  category: string;
+  dataType: string;
+  prerequisite_item_id?: string | null;
+  purchaseCount?: number;
 }
 
 export interface Purchase {

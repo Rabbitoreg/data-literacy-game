@@ -40,6 +40,11 @@ export default function StatementEvaluationManager({ statement, onClose }: State
   const [trueEval, setTrueEval] = useState({ isCorrect: false, points: 0, feedback: '' })
   const [falseEval, setFalseEval] = useState({ isCorrect: false, points: 0, feedback: '' })
   const [unknownEval, setUnknownEval] = useState({ isCorrect: false, points: 0, feedback: '' })
+  
+  // String states for input fields to allow proper editing
+  const [truePointsStr, setTruePointsStr] = useState('0')
+  const [falsePointsStr, setFalsePointsStr] = useState('0')
+  const [unknownPointsStr, setUnknownPointsStr] = useState('0')
 
   useEffect(() => {
     loadEvaluations()
@@ -58,9 +63,18 @@ export default function StatementEvaluationManager({ statement, onClose }: State
         data.evaluations?.forEach((evaluation: StatementEvaluation) => {
           const evaluationData = { isCorrect: evaluation.isCorrect, points: evaluation.points, feedback: evaluation.feedback }
           console.log(`Setting ${evaluation.choice} eval:`, evaluationData)
-          if (evaluation.choice === 'true') setTrueEval(evaluationData)
-          else if (evaluation.choice === 'false') setFalseEval(evaluationData)
-          else if (evaluation.choice === 'unknown') setUnknownEval(evaluationData)
+          if (evaluation.choice === 'true') {
+            setTrueEval(evaluationData)
+            setTruePointsStr(evaluation.points.toString())
+          }
+          else if (evaluation.choice === 'false') {
+            setFalseEval(evaluationData)
+            setFalsePointsStr(evaluation.points.toString())
+          }
+          else if (evaluation.choice === 'unknown') {
+            setUnknownEval(evaluationData)
+            setUnknownPointsStr(evaluation.points.toString())
+          }
         })
       }
     } catch (err) {
@@ -75,10 +89,11 @@ export default function StatementEvaluationManager({ statement, onClose }: State
       setSaving(true)
       setError(null)
 
+      // Convert string values to numbers for saving
       const evaluationsToSave = [
-        { choice: 'true', ...trueEval },
-        { choice: 'false', ...falseEval },
-        { choice: 'unknown', ...unknownEval }
+        { choice: 'true', ...trueEval, points: parseInt(truePointsStr) || 0 },
+        { choice: 'false', ...falseEval, points: parseInt(falsePointsStr) || 0 },
+        { choice: 'unknown', ...unknownEval, points: parseInt(unknownPointsStr) || 0 }
       ]
 
       console.log('Saving evaluations:', evaluationsToSave)
@@ -124,14 +139,23 @@ export default function StatementEvaluationManager({ statement, onClose }: State
       setTrueEval({ isCorrect: true, points: 100, feedback: 'Correct! This statement is true.' })
       setFalseEval({ isCorrect: false, points: -80, feedback: 'Incorrect. This statement is actually true.' })
       setUnknownEval({ isCorrect: false, points: -40, feedback: 'This statement has a definitive answer: true.' })
+      setTruePointsStr('100')
+      setFalsePointsStr('-80')
+      setUnknownPointsStr('-40')
     } else if (truthLabel === 'false') {
       setTrueEval({ isCorrect: false, points: -80, feedback: 'Incorrect. This statement is actually false.' })
       setFalseEval({ isCorrect: true, points: 100, feedback: 'Correct! This statement is false.' })
       setUnknownEval({ isCorrect: false, points: -40, feedback: 'This statement has a definitive answer: false.' })
+      setTruePointsStr('-80')
+      setFalsePointsStr('100')
+      setUnknownPointsStr('-40')
     } else if (truthLabel === 'unknown') {
       setTrueEval({ isCorrect: false, points: -40, feedback: 'This statement cannot be determined to be true.' })
       setFalseEval({ isCorrect: false, points: -40, feedback: 'This statement cannot be determined to be false.' })
       setUnknownEval({ isCorrect: true, points: 70, feedback: 'Correct! This statement is unknowable with the given information.' })
+      setTruePointsStr('-40')
+      setFalsePointsStr('-40')
+      setUnknownPointsStr('70')
     }
   }
 
@@ -211,8 +235,8 @@ export default function StatementEvaluationManager({ statement, onClose }: State
                   <Input
                     id="true-points"
                     type="number"
-                    value={trueEval.points}
-                    onChange={(e) => setTrueEval({ ...trueEval, points: parseInt(e.target.value) || 0 })}
+                    value={truePointsStr}
+                    onChange={(e) => setTruePointsStr(e.target.value)}
                     onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
@@ -257,8 +281,8 @@ export default function StatementEvaluationManager({ statement, onClose }: State
                   <Input
                     id="false-points"
                     type="number"
-                    value={falseEval.points}
-                    onChange={(e) => setFalseEval({ ...falseEval, points: parseInt(e.target.value) || 0 })}
+                    value={falsePointsStr}
+                    onChange={(e) => setFalsePointsStr(e.target.value)}
                     onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />
@@ -303,8 +327,8 @@ export default function StatementEvaluationManager({ statement, onClose }: State
                   <Input
                     id="unknown-points"
                     type="number"
-                    value={unknownEval.points}
-                    onChange={(e) => setUnknownEval({ ...unknownEval, points: parseInt(e.target.value) || 0 })}
+                    value={unknownPointsStr}
+                    onChange={(e) => setUnknownPointsStr(e.target.value)}
                     onFocus={(e) => e.target.select()}
                     placeholder="0"
                   />

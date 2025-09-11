@@ -25,6 +25,29 @@ export async function GET(
       .eq('team_number', teamId)
       .single()
 
+    // If team exists, recalculate score from decisions to ensure accuracy
+    if (team && !error) {
+      const { data: decisions } = await supabase
+        .from('decisions')
+        .select('points_earned')
+        .eq('team_id', team.id)
+
+      const totalScore = decisions?.reduce((sum, decision) => sum + (decision.points_earned || 0), 0) || 0
+      
+      // Update team score if it's different from calculated total
+      if (team.score !== totalScore) {
+        console.log(`Recalculating team ${teamId} score: ${team.score} -> ${totalScore}`)
+        const { error: updateError } = await supabase
+          .from('teams')
+          .update({ score: totalScore })
+          .eq('id', team.id)
+        
+        if (!updateError) {
+          team.score = totalScore
+        }
+      }
+    }
+
     if (error && error.code === 'PGRST116') {
       // Team doesn't exist, create it
       const { data: newTeam, error: createError } = await supabase
