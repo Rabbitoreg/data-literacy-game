@@ -6,12 +6,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// GET /api/items - Get all available items
+// GET /api/items - Get all available items with purchase counts
 export async function GET(request: NextRequest) {
   try {
-    const { data: items, error } = await supabase
+    // Get items with purchase counts
+    const { data: itemsWithCounts, error } = await supabase
       .from('items')
-      .select('*')
+      .select(`
+        *,
+        purchases:purchases(count)
+      `)
       .order('cost', { ascending: true })
 
     if (error) {
@@ -19,7 +23,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 })
     }
 
-    return NextResponse.json({ items: items || [] })
+    // Transform the data to include purchase_count
+    const items = (itemsWithCounts || []).map(item => ({
+      ...item,
+      purchase_count: item.purchases?.[0]?.count || 0
+    }))
+
+    return NextResponse.json({ items })
 
   } catch (error) {
     console.error('Items API error:', error)

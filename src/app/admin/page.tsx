@@ -9,13 +9,13 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import StatementEvaluationManager from '@/components/admin/StatementEvaluationManager'
 import { 
+  RefreshCw, 
   Users, 
-  Trophy, 
+  Settings, 
+  FileText, 
+  ArrowLeft,
   Activity,
-  RefreshCw,
-  Settings,
-  FileText,
-  LogOut
+  Trophy
 } from 'lucide-react'
 
 interface Team {
@@ -54,16 +54,35 @@ interface Statement {
   truthLabel: string
 }
 
+interface DecisionData {
+  id: string
+  team_number: number
+  choice: 'true' | 'false' | 'unknown'
+  confidence: number
+  rationale: string
+  evidence_items: string[]
+  points_earned: number
+  decider_name: string
+}
+
+interface StatementDecisions {
+  statement: Statement
+  decisions: DecisionData[]
+  agreement_score: number
+}
+
 export default function AdminDashboard() {
   const [teams, setTeams] = useState<Team[]>([])
   const [teamsData, setTeamsData] = useState<TeamData[]>([])
   const [statements, setStatements] = useState<Statement[]>([])
+  const [statementDecisions, setStatementDecisions] = useState<StatementDecisions[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [statementsLoading, setStatementsLoading] = useState(true)
+  const [statementViewLoading, setStatementViewLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<string>('')
   const [selectedStatement, setSelectedStatement] = useState<Statement | null>(null)
 
@@ -74,19 +93,24 @@ export default function AdminDashboard() {
       // Get list of teams (1-10 for now)
       const teamPromises = []
       for (let i = 1; i <= 10; i++) {
-        teamPromises.push(
-          fetch(`/api/teams/${i}`)
-            .then(res => res.ok ? res.json() : null)
-            .catch(() => null)
-        )
+        teamPromises.push(fetch(`/api/teams/${i}`))
       }
       
-      const results = await Promise.all(teamPromises)
-      const validTeams = results.filter(Boolean)
+      const responses = await Promise.all(teamPromises)
+      const teamsDataArray = []
       
-      setTeamsData(validTeams)
-      setLastUpdate(new Date().toLocaleTimeString())
+      for (const response of responses) {
+        if (response.ok) {
+          const data = await response.json()
+          teamsDataArray.push(data)
+        }
+      }
+      
+      setTeamsData(teamsDataArray)
+      const now = new Date()
+      setLastUpdate(now.toLocaleString())
     } catch (error) {
+      setError('Failed to fetch teams data')
       console.error('Error fetching teams:', error)
     } finally {
       setLoading(false)
@@ -106,6 +130,22 @@ export default function AdminDashboard() {
       console.error('Error fetching statements:', error)
     } finally {
       setStatementsLoading(false)
+    }
+  }
+
+  // Fetch statement decisions data
+  const fetchStatementDecisions = async () => {
+    try {
+      setStatementViewLoading(true)
+      const response = await fetch('/api/admin/statement-decisions')
+      if (response.ok) {
+        const data = await response.json()
+        setStatementDecisions(data.statements || [])
+      }
+    } catch (error) {
+      console.error('Error fetching statement decisions:', error)
+    } finally {
+      setStatementViewLoading(false)
     }
   }
 
@@ -130,16 +170,8 @@ export default function AdminDashboard() {
     getUser()
     fetchTeamsData()
     fetchStatements()
-    
-    // Only poll teams data when not in statement evaluation mode
-    const interval = setInterval(() => {
-      if (!selectedStatement) {
-        fetchTeamsData()
-      }
-    }, 10000)
-    
-    return () => clearInterval(interval)
-  }, [selectedStatement])
+  }, [])
+
 
   const totalTeams = teamsData.length
   const totalDecisions = teamsData.reduce((sum, team) => sum + team.decisions.length, 0)
@@ -166,21 +198,28 @@ export default function AdminDashboard() {
               className="flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh Data
+              {lastUpdate ? `Refresh Data (Last: ${lastUpdate})` : 'Refresh Data'}
             </Button>
-            {lastUpdate && (
-              <span className="text-sm text-gray-500">
-                Last updated: {lastUpdate}
-              </span>
-            )}
+            <Button 
+              onClick={() => router.push('/')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Main
+            </Button>
           </div>
         </div>
 
         <Tabs defaultValue="teams" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="teams" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Team Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="statement-view" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Statement View
             </TabsTrigger>
             <TabsTrigger value="statements" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -288,6 +327,136 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="statement-view" className="mt-6">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">Statement Analysis</h2>
+                  <p className="text-gray-600">View team decisions and agreement patterns across all statements</p>
+                </div>
+                <Button onClick={fetchStatementDecisions} disabled={statementViewLoading}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${statementViewLoading ? 'animate-spin' : ''}`} />
+                  Load Statement Data
+                </Button>
+              </div>
+
+              {statementViewLoading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading statement decisions...</p>
+                </div>
+              ) : statementDecisions.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12 text-center text-gray-500">
+                    <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg mb-2">No statement data available</p>
+                    <p className="text-sm">Click "Load Statement Data" to fetch the latest decisions</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-8">
+                  {statementDecisions.map((statementData) => {
+                    const choiceCounts = {
+                      true: statementData.decisions.filter(d => d.choice === 'true').length,
+                      false: statementData.decisions.filter(d => d.choice === 'false').length,
+                      unknown: statementData.decisions.filter(d => d.choice === 'unknown').length
+                    }
+                    
+                    const totalDecisions = statementData.decisions.length
+                    const avgConfidence = totalDecisions > 0 
+                      ? Math.round(statementData.decisions.reduce((sum, d) => sum + d.confidence, 0) / totalDecisions)
+                      : 0
+
+                    return (
+                      <Card key={statementData.statement.id} className="overflow-hidden">
+                        <CardHeader className="bg-gray-800 text-white border-b">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg mb-2 text-white">{statementData.statement.text}</CardTitle>
+                              <div className="flex items-center gap-4 text-sm text-gray-300">
+                                <span>Topic: {statementData.statement.topic}</span>
+                                <span>Teams Responded: {totalDecisions}</span>
+                                <span>Avg Confidence: {avgConfidence}%</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={statementData.agreement_score > 0.7 ? 'default' : statementData.agreement_score > 0.4 ? 'secondary' : 'destructive'}>
+                                {statementData.agreement_score > 0.7 ? 'High Agreement' : 
+                                 statementData.agreement_score > 0.4 ? 'Mixed Views' : 'High Disagreement'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="p-6">
+                          {/* Choice Distribution */}
+                          <div className="mb-6">
+                            <h4 className="font-semibold mb-3">Choice Distribution</h4>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600">{choiceCounts.true}</div>
+                                <div className="text-sm text-green-700">TRUE</div>
+                                <div className="text-xs text-gray-500">
+                                  {totalDecisions > 0 ? Math.round((choiceCounts.true / totalDecisions) * 100) : 0}%
+                                </div>
+                              </div>
+                              <div className="text-center p-4 bg-red-50 rounded-lg">
+                                <div className="text-2xl font-bold text-red-600">{choiceCounts.false}</div>
+                                <div className="text-sm text-red-700">FALSE</div>
+                                <div className="text-xs text-gray-500">
+                                  {totalDecisions > 0 ? Math.round((choiceCounts.false / totalDecisions) * 100) : 0}%
+                                </div>
+                              </div>
+                              <div className="text-center p-4 bg-gray-50 rounded-lg">
+                                <div className="text-2xl font-bold text-gray-600">{choiceCounts.unknown}</div>
+                                <div className="text-sm text-gray-700">UNKNOWN</div>
+                                <div className="text-xs text-gray-500">
+                                  {totalDecisions > 0 ? Math.round((choiceCounts.unknown / totalDecisions) * 100) : 0}%
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Team Decisions */}
+                          <div>
+                            <h4 className="font-semibold mb-3">Team Decisions</h4>
+                            <div className="space-y-3">
+                              {statementData.decisions.map((decision) => (
+                                <div key={decision.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center gap-4">
+                                    <Badge variant="outline">Team {decision.team_number}</Badge>
+                                    <Badge variant={decision.choice === 'true' ? 'default' : decision.choice === 'false' ? 'destructive' : 'secondary'}>
+                                      {decision.choice.toUpperCase()}
+                                    </Badge>
+                                    <span className="text-sm text-gray-600">{decision.confidence}% confident</span>
+                                    <span className={`text-sm font-semibold ${
+                                      decision.points_earned > 0 ? 'text-green-600' : 
+                                      decision.points_earned < 0 ? 'text-red-600' : 'text-gray-600'
+                                    }`}>
+                                      {decision.points_earned > 0 ? '+' : ''}{decision.points_earned} pts
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    {decision.evidence_items && decision.evidence_items.length > 0 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {decision.evidence_items.length} evidence
+                                      </Badge>
+                                    )}
+                                    <span>by {decision.decider_name}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="statements" className="mt-6">

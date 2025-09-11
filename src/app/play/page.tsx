@@ -151,6 +151,7 @@ interface Item {
   data_type?: string
   lead_time_minutes: number
   observablehq_url?: string
+  purchase_count?: number
 }
 
 interface Decision {
@@ -781,17 +782,17 @@ function PlayPageContent() {
                       return (
                         <div key={decision.id} className="border rounded-lg bg-white shadow-sm">
                           {/* Header */}
-                          <div className="p-4 border-b bg-gray-50">
+                          <div className="p-4 border-b bg-gray-800 text-white">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <Badge variant="outline" className="text-sm">
+                                <Badge variant="outline" className="text-sm bg-white text-gray-800 border-gray-300">
                                   Statement {statementIndex}
                                 </Badge>
-                                <span className="text-sm text-gray-600">
+                                <span className="text-sm text-gray-300">
                                   {new Date(decision.submitted_at).toLocaleString()}
                                 </span>
                               </div>
-                              <span className="text-sm text-gray-500">
+                              <span className="text-sm text-gray-300">
                                 Decided by: {decision.decider_name}
                               </span>
                             </div>
@@ -834,6 +835,19 @@ function PlayPageContent() {
                                   }`}>
                                     {decision.points_earned > 0 ? '+' : ''}{decision.points_earned}
                                   </span>
+                                  {evaluations.length > 0 && (() => {
+                                    const evaluation = evaluations.find((e: any) => e.choice === decision.choice)
+                                    if (evaluation) {
+                                      const basePoints = evaluation.points
+                                      const confidenceMultiplier = decision.confidence / 100
+                                      return (
+                                        <div className="text-xs text-gray-500 mt-1">
+                                          {basePoints} × {decision.confidence}% = {decision.points_earned}
+                                        </div>
+                                      )
+                                    }
+                                    return null
+                                  })()}
                                 </div>
                               </div>
                             </div>
@@ -960,7 +974,14 @@ function PlayPageContent() {
                           <div key={item.id} className="p-4 border rounded-lg">
                             <div className="flex items-start justify-between mb-2">
                               <h4 className="font-medium">{item.name}</h4>
-                              <Badge variant="outline">${item.cost}</Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">${item.cost}</Badge>
+                                {item.purchase_count !== undefined && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.purchase_count} sold
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <p className="text-sm text-gray-600 mb-3">{item.description}</p>
                             

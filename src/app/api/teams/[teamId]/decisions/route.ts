@@ -84,18 +84,22 @@ export async function POST(
       // Find evaluation for this choice
       const evaluation = evaluations.find((e: any) => e.choice === choice.toLowerCase())
       
-      // Find evaluation for this choice
+      // Calculate base points and apply confidence multiplier
+      let basePoints = 0
       if (evaluation) {
         isCorrect = evaluation.isCorrect
-        pointsAwarded = evaluation.points
+        basePoints = evaluation.points
         feedback = evaluation.feedback
       } else {
         // Legacy fallback: check against statement's truthLabel
         const normalizedTruthLabel = statement.truthLabel === 'unknowable' ? 'unknown' : statement.truthLabel
         isCorrect = choice.toLowerCase() === normalizedTruthLabel
-        pointsAwarded = isCorrect ? (choice.toLowerCase() === 'unknown' ? 70 : 100) : -80
+        basePoints = isCorrect ? (choice.toLowerCase() === 'unknown' ? 70 : 100) : -80
         feedback = isCorrect ? 'Correct answer!' : 'Incorrect answer.'
       }
+      
+      // Apply confidence multiplier: final score = base points * (confidence / 100)
+      pointsAwarded = Math.round(basePoints * (confidence / 100))
     }
 
     // Create decision with evaluation results

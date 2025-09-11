@@ -26,9 +26,32 @@ interface TeamWithStats extends Team {
   purchases_count: number
 }
 
+interface Statement {
+  id: string
+  text: string
+}
+
+interface DecisionData {
+  id: string
+  team_number: number
+  choice: 'true' | 'false' | 'unknown'
+  confidence: number
+  rationale: string
+  evidence_items: string[]
+  points_earned: number
+}
+
+interface StatementDecisions {
+  statement: Statement
+  decisions: DecisionData[]
+  agreement_score: number
+}
+
 export default function AdminPage() {
   const [teams, setTeams] = useState<TeamWithStats[]>([])
+  const [statementDecisions, setStatementDecisions] = useState<StatementDecisions[]>([])
   const [loading, setLoading] = useState(true)
+  const [statementsLoading, setStatementsLoading] = useState(false)
 
   // Load teams data
   const loadTeams = async () => {
@@ -43,6 +66,21 @@ export default function AdminPage() {
       console.error('Failed to load teams:', error)
       setLoading(false)
     }
+  }
+
+  // Load statement decisions data
+  const loadStatementDecisions = async () => {
+    setStatementsLoading(true)
+    try {
+      const response = await fetch('/api/admin/statement-decisions')
+      if (response.ok) {
+        const data = await response.json()
+        setStatementDecisions(data.statements || [])
+      }
+    } catch (error) {
+      console.error('Failed to load statement decisions:', error)
+    }
+    setStatementsLoading(false)
   }
 
   useEffect(() => {
@@ -128,7 +166,7 @@ export default function AdminPage() {
           {/* Main Content Area */}
           <div className="col-span-9">
             <Tabs defaultValue="teams" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="teams" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Teams ({teams.length})
@@ -136,6 +174,10 @@ export default function AdminPage() {
                 <TabsTrigger value="leaderboard" className="flex items-center gap-2">
                   <Trophy className="h-4 w-4" />
                   Leaderboard
+                </TabsTrigger>
+                <TabsTrigger value="statements" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Statement View
                 </TabsTrigger>
                 <TabsTrigger value="analytics" className="flex items-center gap-2">
                   <Activity className="h-4 w-4" />
