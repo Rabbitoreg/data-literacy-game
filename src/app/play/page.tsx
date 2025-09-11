@@ -2,15 +2,22 @@
 
 import React, { useState, useEffect, useRef, memo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, ShoppingCart, Eye, Users, DollarSign, TrendingUp, TrendingDown, Clock, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Team as GameTeam } from '@/types/game'
+import { Textarea } from '@/components/ui/textarea'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { ArrowUp, ArrowDown, DollarSign, ShoppingCart, Users, Target, TrendingUp, TrendingDown, Circle } from 'lucide-react'
+import { StoreAccordion } from '@/components/game/StoreAccordion'
+import { TeamSetupModal } from '@/components/game/TeamSetupModal'
+import { DecisionControls } from '@/components/game/DecisionControls'
+import { Toaster } from '@/components/ui/toaster'
+import { useToast } from '@/components/ui/use-toast'
 
 // Observable embed component - memoized to prevent re-renders
 const ObservableEmbed = memo(({ url, itemId }: { url: string, itemId: string }) => {
@@ -129,6 +136,7 @@ interface Team {
   budget: number
   score: number
   created_at: string
+  members?: string[]
 }
 
 interface Statement {
@@ -199,8 +207,9 @@ function PlayPageContent() {
   const searchParams = useSearchParams()
   const teamNumber = searchParams.get('team')
   const playerName = searchParams.get('name')
+  const { toast } = useToast()
 
-  const [team, setTeam] = useState<GameTeam | null>(null)
+  const [team, setTeam] = useState<Team | null>(null)
   const [statements, setStatements] = useState<Statement[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [decisions, setDecisions] = useState<Decision[]>([])
@@ -211,6 +220,8 @@ function PlayPageContent() {
   const [previousScore, setPreviousScore] = useState<number | null>(null)
   const [scoreChange, setScoreChange] = useState<'up' | 'down' | null>(null)
   const [purchasedHints, setPurchasedHints] = useState<Set<string>>(new Set())
+  const [lastHintCount, setLastHintCount] = useState(0)
+  const [lastDecisionCount, setLastDecisionCount] = useState(0)
 
   const [selectedChoice, setSelectedChoice] = useState<'true' | 'false' | 'unknown'>('true')
   const [confidence, setConfidence] = useState(70)
@@ -265,6 +276,19 @@ function PlayPageContent() {
       }
     } catch (err) {
       console.error('Failed to load purchased hints:', err)
+    }
+  }
+
+  // Load statements
+  const loadStatements = async () => {
+    try {
+      const response = await fetch('/api/statements')
+      if (response.ok) {
+        const data = await response.json()
+        setStatements(data.statements || [])
+      }
+    } catch (err) {
+      console.error('Failed to load statements:', err)
     }
   }
 
@@ -334,16 +358,8 @@ function PlayPageContent() {
     const loadData = async () => {
       try {
         setLoading(true)
-        
         await loadTeamData()
-
-        // Load statements
-        const statementsResponse = await fetch('/api/statements')
-        if (statementsResponse.ok) {
-          const statementsData = await statementsResponse.json()
-          setStatements(statementsData.statements || [])
-        }
-
+        await loadStatements()
         await loadDecisions()
         await loadItems()
         await loadPurchases()
@@ -351,13 +367,53 @@ function PlayPageContent() {
         setLoading(false)
       } catch (err) {
         console.error('Error loading data:', err)
-        setError('Failed to load game data')
         setLoading(false)
       }
     }
 
     loadData()
   }, [teamNumber])
+
+  // Periodically refresh purchased hints to sync with other team members
+  useEffect(() => {
+    if (!teamNumber) return
+
+    const interval = setInterval(() => {
+      loadPurchasedHints()
+      loadDecisions() // Also refresh decisions to catch new submissions
+    }, 5000) // Refresh every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [teamNumber])
+
+  // Monitor hint purchases for notifications
+  useEffect(() => {
+    const currentHintCount = purchasedHints.size
+    if (lastHintCount > 0 && currentHintCount > lastHintCount) {
+      // New hint purchased by team member
+      toast({
+        title: "💡 Hint Purchased!",
+        description: "A team member just purchased a hint for the current statement.",
+        variant: "info",
+      })
+    }
+    setLastHintCount(currentHintCount)
+  }, [purchasedHints.size, lastHintCount, toast])
+
+  // Monitor decision submissions for notifications
+  useEffect(() => {
+    const currentDecisionCount = decisions.length
+    if (lastDecisionCount > 0 && currentDecisionCount > lastDecisionCount) {
+      // New decision submitted by team member
+      const latestDecision = decisions[decisions.length - 1]
+      toast({
+        title: "📝 Decision Submitted!",
+        description: `A team member submitted a decision: ${latestDecision.choice.toUpperCase()}`,
+        variant: "success",
+      })
+    }
+    setLastDecisionCount(currentDecisionCount)
+  }, [decisions.length, lastDecisionCount, toast])
 
   // Load items when team data is available
   useEffect(() => {
@@ -503,9 +559,22 @@ function PlayPageContent() {
       if (response.ok) {
         setPurchasedHints(prev => new Set(Array.from(prev).concat(statementId)))
         await loadTeamData() // Refresh team data to update budget
+        
+        // Show success notification for current user
+        toast({
+          title: "✅ Hint Purchased!",
+          description: "You successfully purchased a hint for this statement.",
+          variant: "success",
+        })
       } else {
         const errorData = await response.json()
         console.error('Purchase hint error:', errorData)
+        
+        // If hint was already purchased by another team member, refresh hints to show it
+        if (response.status === 400 && errorData.error?.includes('already purchased')) {
+          console.log('Hint already purchased, refreshing hints list')
+          await loadPurchasedHints()
+        }
       }
     } catch (error) {
       console.error('Error purchasing hint:', error)
@@ -1154,6 +1223,7 @@ function PlayPageContent() {
         </Tabs>
       </div>
 
+      <Toaster />
     </div>
   )
 }
