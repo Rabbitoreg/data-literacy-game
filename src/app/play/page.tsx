@@ -463,6 +463,13 @@ function PlayPageContent() {
       if (response.ok) {
         const result = await response.json()
         
+        // Show success notification
+        toast({
+          title: "✅ Decision Submitted!",
+          description: `Your team decision (${selectedChoice.toUpperCase()}) has been recorded.`,
+          variant: "success",
+        })
+        
         // Reload decisions and team data to update UI and show score changes
         await loadDecisions()
         await loadTeamData()
@@ -677,16 +684,16 @@ function PlayPageContent() {
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-4xl mx-auto">
           {/* Header with back button */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="mb-6">
             <Button 
               onClick={handleBackToGame}
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 mb-4"
             >
-              ← Back to Game
+              ← Back to the Team Page
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">{viewingItem.name}</h1>
+              <h1 className="text-2xl font-bold">Evidence item: {viewingItem.name}</h1>
               <p className="text-gray-600">Team {team?.team_number}</p>
             </div>
           </div>
@@ -729,11 +736,11 @@ function PlayPageContent() {
       <div className="max-w-6xl mx-auto mb-6">
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
           <div>
-            <h1 className="text-2xl font-bold">Team {team?.team_number}</h1>
-            <p className="text-gray-600">Data Decisions: Pilot Pursuit</p>
+            <h1 className="text-2xl font-bold">There You Go! Team {team?.team_number}</h1>
+            <p className="text-gray-600">Data Literacy Simulation: Read, interpret, and argue with data</p>
             {team?.members && team.members.length > 0 && (
               <div className="mt-2">
-                <p className="text-sm text-gray-500">Team Members:</p>
+                <p className="text-sm text-gray-500">TYG Team Members:</p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {team.members.map((member: string, index: number) => (
                     <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
@@ -746,12 +753,12 @@ function PlayPageContent() {
           </div>
           <div className="flex items-center gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">${team?.budget}</div>
-              <div className="text-sm text-gray-500">Budget</div>
+              <div className="text-2xl font-bold text-green-600">${team?.budget?.toLocaleString()}</div>
+              <div className="text-sm text-gray-500">Team Budget</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-2">
-                <div className="text-2xl font-bold text-blue-600">{team?.score}</div>
+                <div className="text-2xl font-bold text-blue-600">{team?.score?.toLocaleString()}</div>
                 {scoreChange && (
                   <>
                     {scoreChange === 'up' ? (
@@ -762,7 +769,7 @@ function PlayPageContent() {
                   </>
                 )}
               </div>
-              <div className="text-sm text-gray-500">Total Score</div>
+              <div className="text-sm text-gray-500">Team Score</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{decisions.length}</div>
@@ -813,7 +820,7 @@ function PlayPageContent() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Your Decision</label>
+                    <label className="text-sm font-medium mb-2 block">Team Decision: is the statement True, False, or Unknown?</label>
                     <div className="flex gap-2">
                       {(['true', 'false', 'unknown'] as const).map((choice) => (
                         <Button
@@ -830,7 +837,7 @@ function PlayPageContent() {
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">
-                      Confidence: {confidence}%
+                      Team Confidence: {confidence}%
                     </label>
                     <input
                       type="range"
@@ -843,7 +850,7 @@ function PlayPageContent() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Rationale</label>
+                    <label className="text-sm font-medium mb-2 block">Tell TYG why you think this is true, false, or unknown:</label>
                     <textarea
                       value={rationale}
                       onChange={(e) => setRationale(e.target.value)}
@@ -857,7 +864,7 @@ function PlayPageContent() {
                   {purchasedItems.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select evidence to support your decision (optional):
+                        Select evidence to support the team decision (optional but recommended):
                       </label>
                       <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-3">
                         {purchasedItems.map((item) => (
@@ -965,7 +972,7 @@ function PlayPageContent() {
                                 <label className="text-sm font-medium text-gray-600">Choice</label>
                                 <div className="mt-1">
                                   <Badge 
-                                    variant={decision.choice === 'true' ? 'default' : decision.choice === 'false' ? 'destructive' : 'secondary'}
+                                    variant="secondary"
                                     className="text-lg px-3 py-1"
                                   >
                                     {decision.choice.toUpperCase()}
@@ -1037,9 +1044,26 @@ function PlayPageContent() {
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   {decision.evidence_items.map((itemId: string, idx: number) => {
                                     const item = items.find(i => i.id === itemId)
+                                    
+                                    // Check if this evidence item matches the statement's recommended items for boost
+                                    let hasBoost = false
+                                    if (decision.statement?.recommended_items) {
+                                      try {
+                                        const recommendedItems = Array.isArray(decision.statement.recommended_items) 
+                                          ? decision.statement.recommended_items 
+                                          : [decision.statement.recommended_items]
+                                        hasBoost = recommendedItems.some(recItem => 
+                                          (typeof recItem === 'string' && recItem === itemId) ||
+                                          (typeof recItem === 'object' && recItem && (recItem as any).id === itemId)
+                                        )
+                                      } catch (e) {
+                                        hasBoost = false
+                                      }
+                                    }
+                                    
                                     return item ? (
                                       <Badge key={idx} variant="outline" className="text-xs">
-                                        {item.name}
+                                        {item.name}{hasBoost ? ' +10% confidence' : ' -1% confidence'}
                                       </Badge>
                                     ) : null
                                   })}
@@ -1051,13 +1075,13 @@ function PlayPageContent() {
                           {/* Acceptable Answers */}
                           {evaluations.length > 0 && (
                             <div className="p-4">
-                              <h4 className="font-semibold text-gray-900 mb-3">Acceptable Answers</h4>
+                              <h4 className="font-semibold text-gray-900 mb-3">T/F/U Options and Feedback</h4>
                               <div className="space-y-2">
                                 {evaluations.map((evaluation: any, evalIdx: number) => (
                                   <div key={evalIdx} className="flex items-center justify-between p-2 rounded-md bg-gray-50">
                                     <div className="flex items-center gap-3">
                                       <Badge 
-                                        variant={evaluation.choice === 'true' ? 'default' : evaluation.choice === 'false' ? 'destructive' : 'secondary'}
+                                        variant="secondary"
                                         className="text-sm"
                                       >
                                         {evaluation.choice.toUpperCase()}
@@ -1089,21 +1113,21 @@ function PlayPageContent() {
               <div className="col-span-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Hint</CardTitle>
+                    <CardTitle>TYG Advisor</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {currentStatement && purchasedHints.has(currentStatement.id) ? (
                       <div className="space-y-2">
                         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                           <p className="text-sm text-yellow-800">
-                            {(currentStatement as any).statement_hint || 'No hint available for this statement.'}
+                            {(currentStatement as any).statement_hint || 'Too busy right now!'}
                           </p>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         <p className="text-gray-600 text-sm">
-                          Need help with this statement? Purchase a hint to get additional guidance.
+                          Need help with this statement? Ask the TYG Advisor for help. It cost 10 coins.
                         </p>
                         <Button
                           onClick={() => {
@@ -1118,7 +1142,7 @@ function PlayPageContent() {
                           variant="outline"
                         >
                           <DollarSign className="w-4 h-4 mr-2" />
-                          Purchase Hint (10 coins)
+                          Purchase Advice (10 coins)
                         </Button>
                         {team && (team.budget ?? 0) < 10 && (
                           <p className="text-red-500 text-xs">Insufficient budget</p>
@@ -1137,7 +1161,7 @@ function PlayPageContent() {
               <div className="col-span-12">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Information Store</CardTitle>
+                    <CardTitle>Evidence Store (hint: argument without data is opinion)</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {/* Store Filters */}

@@ -81,24 +81,72 @@ export default function HomePage() {
       <div className="max-w-4xl mx-auto pt-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Data Decisions: Pilot Pursuit
+            Data Literacy in Action: There You Go!
           </h1>
           <p className="text-xl text-gray-600 mb-2">
-            A multiplayer data literacy game for teams
+            There You Go! (TYG), the number one travel company in Ottland, has just finished its sales pilot. The data is in. The results are up. They need you to make decisions!
           </p>
           <div className="flex justify-center gap-2 mb-6">
-            <Badge variant="secondary">60 minutes</Badge>
+            <Badge variant="secondary">True, False, or Unknown?</Badge>
             <Badge variant="secondary">Team-based</Badge>
             <Badge variant="secondary">Real-time decisions</Badge>
+          </div>
+          
+          {/* Hero GIF */}
+          <div className="flex justify-center mb-8">
+            <img 
+              src="/land.gif" 
+              alt="Data Literacy Game Demo"
+              className="max-w-full h-auto rounded-lg shadow-lg"
+              style={{ maxHeight: '400px' }}
+            />
           </div>
         </div>
 
         <div className="grid gap-8">
+          {/* Game Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>How It Works</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
+                    <span className="text-blue-600 font-bold">1</span>
+                  </div>
+                  <h3 className="font-semibold mb-2">Choose Team</h3>
+                  <p className="text-sm text-gray-600">
+                    Select your team and start with $1,000 budget. Buy evidence if needed.
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
+                    <span className="text-green-600 font-bold">2</span>
+                  </div>
+                  <h3 className="font-semibold mb-2">Make Decisions</h3>
+                  <p className="text-sm text-gray-600">
+                    Read, interpret, and argue with data as a team to evaluate statements as True/False/Unknown. 
+                  </p>
+                </div>
+                <div className="text-center">
+                  <div className="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
+                    <span className="text-purple-600 font-bold">3</span>
+                  </div>
+                  <h3 className="font-semibold mb-2">Practice Data Literacy</h3>
+                  <p className="text-sm text-gray-600">
+                    Yes, you earn points for correct decisions but more importantly you practice speaking data, the language of impact in Ottland.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Player Identification */}
           <Card>
             <CardHeader>
               <CardTitle>
-                {!playerSearched ? "Enter Your Name" : playerTeams.length > 0 ? "Welcome Back!" : "Join a Team"}
+                {!playerSearched ? "Welcome to TYG! Enter Your Name" : playerTeams.length > 0 ? "Welcome Back!" : "You're hired! Join a Team:"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -185,7 +233,7 @@ export default function HomePage() {
                         size="lg"
                         className="w-full md:w-auto"
                       >
-                        Join Team {selectedTeam} & Start Playing
+                        Join Team {selectedTeam} & Start Working at TYG
                       </Button>
                     </div>
                   )}
@@ -203,53 +251,15 @@ export default function HomePage() {
           {/* Admin Access */}
           <Card>
             <CardHeader>
-              <CardTitle>Facilitator Access</CardTitle>
+              <CardTitle>TYG CEO Access Only</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-gray-600 mb-4">
-                Monitor all teams and control the game flow
+                Login required! Watch the teams resolve the data literacy challenge.
               </p>
               <Button onClick={goToAdmin} variant="secondary">
-                Go to Admin Dashboard
+                Enter the Boardroom
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Game Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>How It Works</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="bg-blue-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
-                    <span className="text-blue-600 font-bold">1</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Choose Team</h3>
-                  <p className="text-sm text-gray-600">
-                    Select your team and start with $1000 budget
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
-                    <span className="text-green-600 font-bold">2</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Make Decisions</h3>
-                  <p className="text-sm text-gray-600">
-                    Evaluate statements as True/False/Unknown and purchase insights
-                  </p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
-                    <span className="text-purple-600 font-bold">3</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Score Points</h3>
-                  <p className="text-sm text-gray-600">
-                    Earn points for correct decisions and strategic purchases
-                  </p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>

@@ -71,29 +71,48 @@ export async function POST(
     let confidenceBoost = 0
 
     if (statement) {
-      // Check if correct evidence items were used (10% confidence boost)
+      // Check evidence items for confidence adjustments
       console.log('Evidence check - evidence_items:', evidence_items)
       console.log('Evidence check - statement.recommended_items:', statement.recommended_items)
       
-      if (evidence_items && evidence_items.length > 0 && statement.recommended_items) {
-        const recommendedItems = statement.recommended_items.filter((item: string) => !item.startsWith('{'))
-        console.log('Evidence check - filtered recommendedItems:', recommendedItems)
-        
-        // Check for exact matches
-        const hasCorrectEvidence = evidence_items.some((item: string) => recommendedItems.includes(item))
-        console.log('Evidence check - hasCorrectEvidence (exact):', hasCorrectEvidence)
-        
-        // Debug: show what we're comparing
-        console.log('Evidence check - comparing:', { evidence_items, recommendedItems })
-        
-        if (hasCorrectEvidence) {
-          confidenceBoost = 10
-          console.log(`Evidence boost applied: +${confidenceBoost}% confidence for using correct evidence`)
+      if (evidence_items && evidence_items.length > 0) {
+        if (statement.recommended_items) {
+          const recommendedItems = statement.recommended_items.filter((item: string) => !item.startsWith('{'))
+          console.log('Evidence check - filtered recommendedItems:', recommendedItems)
+          
+          // Check for exact matches (10% boost)
+          const hasCorrectEvidence = evidence_items.some((item: string) => recommendedItems.includes(item))
+          console.log('Evidence check - hasCorrectEvidence (exact):', hasCorrectEvidence)
+          
+          if (hasCorrectEvidence) {
+            confidenceBoost = 10
+            console.log(`Evidence boost applied: +${confidenceBoost}% confidence for using correct evidence`)
+          }
+          
+          // Apply -1% penalty for each irrelevant evidence item
+          const irrelevantItems = evidence_items.filter((item: string) => !recommendedItems.includes(item))
+          const penalty = irrelevantItems.length * 1
+          confidenceBoost -= penalty
+          
+          // Cap confidence boost between -10% and +10%
+          confidenceBoost = Math.max(-10, Math.min(10, confidenceBoost))
+          
+          console.log(`Evidence penalty applied: -${penalty}% confidence for ${irrelevantItems.length} irrelevant evidence items`)
+          console.log(`Final confidence boost (capped): ${confidenceBoost}%`)
+          console.log('Evidence check - comparing:', { evidence_items, recommendedItems, irrelevantItems })
         } else {
-          console.log('No evidence boost - no matching items found')
+          // No recommended items means all evidence is irrelevant (-1% per item)
+          const penalty = evidence_items.length * 1
+          confidenceBoost = -penalty
+          
+          // Cap confidence boost between -10% and +10%
+          confidenceBoost = Math.max(-10, Math.min(10, confidenceBoost))
+          
+          console.log(`Evidence penalty applied: -${penalty}% confidence for ${evidence_items.length} irrelevant evidence items (no recommended items)`)
+          console.log(`Final confidence boost (capped): ${confidenceBoost}%`)
         }
       } else {
-        console.log('No evidence boost - missing evidence_items or recommended_items')
+        console.log('No evidence boost - no evidence items provided')
       }
 
       // Check for evaluations stored in recommended_items as JSON
