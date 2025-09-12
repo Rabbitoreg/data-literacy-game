@@ -25,6 +25,7 @@ export interface Team {
   completedStatements: number;
   team_number?: number;
   budget?: number;
+  team_nickname?: string;
 }
 
 export interface Statement {
@@ -39,6 +40,7 @@ export interface Statement {
   requiredEvidenceTypes: string[];
   recommendedItems: string[];
   visualRefs: string[];
+  statementOrder?: number;
   metadata?: Record<string, any>;
 }
 

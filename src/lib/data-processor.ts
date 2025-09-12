@@ -11,6 +11,7 @@ export interface CSVStatement {
   recommended_items: string
   required_evidence_types?: string
   visual_refs?: string
+  statement_order?: string
 }
 
 export interface CSVStoreItem {
@@ -55,6 +56,7 @@ export class DataProcessor {
           row.recommended_items.split('|').map(s => s.trim()) : [],
         visualRefs: row.visual_refs ? 
           row.visual_refs.split('|').map(s => s.trim()) : [],
+        statementOrder: row.statement_order ? parseInt(row.statement_order) : parseInt(row.id),
         metadata: {}
       }
     })

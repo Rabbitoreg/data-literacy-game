@@ -16,6 +16,7 @@ import { ArrowUp, ArrowDown, DollarSign, ShoppingCart, Users, Target, TrendingUp
 import { StoreAccordion } from '@/components/game/StoreAccordion'
 import { TeamSetupModal } from '@/components/game/TeamSetupModal'
 import { DecisionControls } from '@/components/game/DecisionControls'
+import { TeamNicknameEditor } from '@/components/game/TeamNicknameEditor'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/components/ui/use-toast'
 
@@ -136,7 +137,9 @@ interface Team {
   budget: number
   score: number
   created_at: string
-  members?: string[]
+  members: string[]
+  deciderorder?: string[]
+  team_nickname?: string
 }
 
 interface Statement {
@@ -743,7 +746,16 @@ function PlayPageContent() {
       <div className="max-w-6xl mx-auto mb-6">
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
           <div>
-            <h1 className="text-2xl font-bold">There You Go! Team {team?.team_number}</h1>
+            <TeamNicknameEditor
+              teamId={team?.id || ''}
+              teamNumber={team?.team_number || 0}
+              currentNickname={team?.team_nickname}
+              onNicknameUpdate={(nickname) => {
+                if (team) {
+                  setTeam({ ...team, team_nickname: nickname })
+                }
+              }}
+            />
             <p className="text-gray-600">Data Literacy Simulation: Read, interpret, and argue with data</p>
             {team?.members && team.members.length > 0 && (
               <div className="mt-2">

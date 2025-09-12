@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { data: statements, error: statementsError } = await supabase
       .from('statements')
       .select('id, text, topic, truth_label')
-      .order('id')
+      .order('statement_order')
 
     if (statementsError) {
       console.error('Error fetching statements:', statementsError)
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         evidence_items,
         points_earned,
         decider_name,
-        teams!inner(team_number)
+        teams!inner(team_number, team_nickname)
       `)
       .order('statement_id, teams(team_number)')
 
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
         decisions: statementDecisionsList.map((decision: any) => ({
           id: decision.id,
           team_number: decision.teams.team_number,
+          team_nickname: decision.teams.team_nickname,
           choice: decision.choice,
           confidence: decision.confidence,
           rationale: decision.rationale,

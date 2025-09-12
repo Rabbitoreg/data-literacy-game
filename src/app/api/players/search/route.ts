@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     // Search for teams that have this player in their members array
     const { data: teams, error } = await supabase
       .from('teams')
-      .select('*')
+      .select('id, team_number, budget, score, members, created_at, team_nickname')
       .contains('members', [playerName.trim()])
       .order('team_number', { ascending: true })
 
@@ -27,6 +27,12 @@ export async function GET(request: NextRequest) {
       console.error('Error searching for player:', error)
       return NextResponse.json({ error: 'Failed to search for player' }, { status: 500 })
     }
+
+    console.log('Player search results:', {
+      playerName: playerName.trim(),
+      teams: teams || [],
+      teamsWithNicknames: teams?.filter(t => t.team_nickname) || []
+    })
 
     return NextResponse.json({ 
       playerName: playerName.trim(),

@@ -26,6 +26,7 @@ interface Team {
   budget: number
   score: number
   created_at: string
+  team_nickname?: string
 }
 
 interface Decision {
@@ -62,9 +63,11 @@ interface DecisionData {
   choice: 'true' | 'false' | 'unknown'
   confidence: number
   rationale: string
-  evidence_items: string[]
-  points_earned: number
   decider_name: string
+  points_earned: number
+  submitted_at: string
+  team_nickname?: string
+  evidence_items?: string[]
 }
 
 interface StatementDecisions {
@@ -344,7 +347,7 @@ export default function AdminDashboard() {
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-center">
                         <CardTitle className="text-lg">
-                          Team {teamData.team.team_number}
+                          Team {teamData.team.team_number}{teamData.team.team_nickname ? ` - ${teamData.team.team_nickname}` : ''}
                         </CardTitle>
                         <Badge variant="outline">
                           ${teamData.team.budget}
@@ -476,7 +479,7 @@ export default function AdminDashboard() {
                               {statementData.decisions.map((decision) => (
                                 <div key={decision.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                   <div className="flex items-center gap-4">
-                                    <Badge variant="outline">Team {decision.team_number}</Badge>
+                                    <Badge variant="outline">Team {decision.team_number}{decision.team_nickname ? ` - ${decision.team_nickname}` : ''}</Badge>
                                     <Badge variant={decision.choice === 'true' ? 'default' : decision.choice === 'false' ? 'destructive' : 'secondary'}>
                                       {decision.choice.toUpperCase()}
                                     </Badge>

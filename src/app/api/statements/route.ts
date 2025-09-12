@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const { data: statements, error } = await supabase
       .from('statements')
       .select('*')
-      .order('id', { ascending: true })
+      .order('statement_order', { ascending: true })
 
     if (error) {
       console.error('Error fetching statements:', error)

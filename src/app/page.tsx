@@ -15,6 +15,13 @@ interface Team {
   score: number
   members: string[]
   created_at: string
+  team_nickname?: string
+}
+
+interface TeamResponse {
+  team: Team
+  decisions: any[]
+  purchases: any[]
 }
 
 export default function HomePage() {
@@ -28,8 +35,9 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false)
   const [playerName, setPlayerName] = useState('')
   const [showNameInput, setShowNameInput] = useState(false)
+  const [allTeams, setAllTeams] = useState<TeamResponse[]>([])
 
-  // Fetch max teams configuration on component mount
+  // Fetch max teams configuration and all teams on component mount
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -41,13 +49,32 @@ export default function HomePage() {
         })
         if (response.ok) {
           const config = await response.json()
-          setMaxTeams(parseInt(config.maxTeams) || 8)
+          console.log('Config response:', config)
+          setMaxTeams(config.max_teams || 8)
         }
       } catch (error) {
         console.error('Error fetching config:', error)
       }
     }
+
+    const fetchAllTeams = async () => {
+      try {
+        const teamPromises = Array.from({ length: 10 }, (_, i) => 
+          fetch(`/api/teams/${i + 1}`).then(res => res.ok ? res.json() : null)
+        )
+        const teams = await Promise.all(teamPromises)
+        const validTeams = teams.filter(team => team !== null)
+        console.log('Fetched teams for selection:', validTeams)
+        console.log('Sample team structure:', validTeams[0])
+        console.log('maxTeams config:', maxTeams)
+        setAllTeams(validTeams)
+      } catch (error) {
+        console.error('Error fetching teams:', error)
+      }
+    }
+    
     fetchConfig()
+    fetchAllTeams()
   }, [])
 
   const searchForPlayer = async () => {
@@ -210,7 +237,7 @@ export default function HomePage() {
                       <div key={team.id} className="p-4 border rounded-lg bg-white">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h3 className="font-semibold">Team {team.team_number}</h3>
+                            <h3 className="font-semibold">Team {team.team_number}{team.team_nickname ? ` - ${team.team_nickname}` : ''}</h3>
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                               <span>Budget: ${team.budget}</span>
                               <span>Score: {team.score}</span>
@@ -233,20 +260,25 @@ export default function HomePage() {
               ) : showTeamSelection ? (
                 // Step 2b: Show team selection for new player
                 <div className="space-y-4">
-                  <p className="text-gray-600 text-center">
-                    Welcome, <strong>{playerName}</strong>! Choose a team to join:
-                  </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    {Array.from({ length: maxTeams }, (_, i) => i + 1).map((teamNumber) => (
-                      <Button
-                        key={teamNumber}
-                        variant={selectedTeam === teamNumber ? "default" : "outline"}
-                        className="h-16 text-lg"
-                        onClick={() => selectTeam(teamNumber)}
-                      >
-                        Team {teamNumber}
-                      </Button>
-                    ))}
+                    {Array.from({ length: maxTeams }, (_, i) => i + 1).map((teamNumber) => {
+                      console.log(`Rendering button for team ${teamNumber}, maxTeams is ${maxTeams}`)
+                      const teamData = allTeams.find(t => t.team?.team_number === teamNumber)
+                      const team = teamData?.team
+                      console.log(`Looking for team ${teamNumber} in:`, allTeams.map(t => ({ id: t.team?.id, team_number: t.team?.team_number, team_nickname: t.team?.team_nickname })))
+                      const displayName = team?.team_nickname ? `Team ${teamNumber} - ${team.team_nickname}` : `Team ${teamNumber}`
+                      console.log(`Team ${teamNumber}:`, { team, displayName, hasNickname: !!team?.team_nickname })
+                      return (
+                        <Button
+                          key={teamNumber}
+                          variant={selectedTeam === teamNumber ? "default" : "outline"}
+                          className="h-20 text-sm px-2 py-2 whitespace-normal break-words"
+                          onClick={() => selectTeam(teamNumber)}
+                        >
+                          {displayName}
+                        </Button>
+                      )
+                    })}
                   </div>
                   
                   {selectedTeam && (

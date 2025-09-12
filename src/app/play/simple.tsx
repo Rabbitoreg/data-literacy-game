@@ -13,6 +13,9 @@ interface Team {
   budget: number
   score: number
   created_at: string
+  members: string[]
+  deciderorder?: string[]
+  team_nickname?: string
 }
 
 interface Statement {
@@ -309,7 +312,7 @@ export default function PlayPage() {
       <div className="max-w-6xl mx-auto mb-6">
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
           <div>
-            <h1 className="text-2xl font-bold">Team {team?.team_number}</h1>
+            <h1 className="text-2xl font-bold">Team {team?.team_number}{team?.team_nickname ? ` - ${team.team_nickname}` : ''}</h1>
             <p className="text-gray-600">Data Decisions: Pilot Pursuit</p>
           </div>
           <div className="flex items-center gap-6">

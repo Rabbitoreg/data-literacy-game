@@ -161,7 +161,7 @@ export const db = {
     const { data, error } = await supabase
       .from('statements')
       .select('*')
-      .order('id')
+      .order('statement_order')
     
     if (error) throw error
     return data
