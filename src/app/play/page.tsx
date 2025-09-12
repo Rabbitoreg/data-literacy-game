@@ -800,17 +800,13 @@ function PlayPageContent() {
 
       <div className="max-w-6xl mx-auto">
         <Tabs defaultValue="game" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="game" className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+          <TabsList className="grid w-full grid-cols-2 h-14 bg-gray-100">
+            <TabsTrigger value="game" className="flex items-center gap-2 h-12 data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
+              <img src="/decision_ball.png" alt="Decision" className="w-4 h-4" />
               Decision Making
             </TabsTrigger>
-            <TabsTrigger value="store" className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
+            <TabsTrigger value="store" className="flex items-center gap-2 h-12 data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
+              <img src="/chest.png" alt="Decision" className="w-4 h-4" />
               Evidence Store & Purchases
             </TabsTrigger>
           </TabsList>
@@ -933,7 +929,8 @@ function PlayPageContent() {
             <div className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Previous Decisions ({completedDecisions.length})</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                <img src="/prev_decision.png" alt="Previous Decision" className="w-4 h-4" />Previous Decisions ({completedDecisions.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -1132,7 +1129,10 @@ function PlayPageContent() {
               <div className="col-span-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>TYG Advisor</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <img src="/advisor.png" alt="Advisor" className="w-4 h-4" />
+                      TYG Advisor
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {currentStatement && purchasedHints.has(currentStatement.id) ? (
@@ -1160,7 +1160,7 @@ function PlayPageContent() {
                           className="w-full"
                           variant="outline"
                         >
-                          <DollarSign className="w-4 h-4 mr-2" />
+                          <img src="/purchase.png" alt="Purchase" className="w-4 h-4 mr-2" />
                           Purchase Advice (10 coins)
                         </Button>
                         {team && (team.budget ?? 0) < 10 && (
@@ -1242,22 +1242,17 @@ function PlayPageContent() {
                               size="sm"
                               onClick={() => isPurchased ? handleViewItem(item) : handlePurchaseItem(item.id)}
                               disabled={!team || (!isPurchased && (team.budget ?? 0) < item.cost)}
-                              className={`w-full transition-all duration-200 ${isPurchased ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700' : ''}`}
-                              variant={isPurchased ? "default" : "default"}
+                              className={`w-full transition-all duration-200 ${isPurchased ? 'border-2 border-green-600 text-green-600 bg-white hover:bg-green-50' : 'border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-50'}`}
+                              variant="outline"
                             >
                               {isPurchased ? (
                                 <>
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                  </svg>
+                                  <img src="/view.png" alt="View" className="w-4 h-4 mr-2" />
                                   VIEW
                                 </>
                               ) : (
                                 <>
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-                                  </svg>
+                                  <img src="/purchase.png" alt="Purchase" className="w-4 h-4 mr-2" />
                                   Purchase
                                 </>
                               )}
