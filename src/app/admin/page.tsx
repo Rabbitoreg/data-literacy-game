@@ -15,7 +15,9 @@ import {
   FileText, 
   ArrowLeft,
   Activity,
-  Trophy
+  Trophy,
+  Play,
+  AlertTriangle
 } from 'lucide-react'
 
 interface Team {
@@ -85,14 +87,49 @@ export default function AdminDashboard() {
   const [statementViewLoading, setStatementViewLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<string>('')
   const [selectedStatement, setSelectedStatement] = useState<Statement | null>(null)
+  const [showStartNewGame, setShowStartNewGame] = useState(false)
+  const [newGameTeams, setNewGameTeams] = useState(8)
+  const [startingNewGame, setStartingNewGame] = useState(false)
 
   // Fetch all teams data
+  const startNewGame = async () => {
+    try {
+      setStartingNewGame(true)
+      const response = await fetch('/api/admin/start-new-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxTeams: newGameTeams })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        alert(`✅ ${result.message}`)
+        setShowStartNewGame(false)
+        await fetchTeamsData() // Refresh data
+      } else {
+        const error = await response.json()
+        alert(`❌ Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error starting new game:', error)
+      alert('❌ Failed to start new game')
+    } finally {
+      setStartingNewGame(false)
+    }
+  }
+
   const fetchTeamsData = async () => {
     try {
       setLoading(true)
-      // Get list of teams (1-10 for now)
+      
+      // Get max teams from config first
+      const configResponse = await fetch('/api/admin/config')
+      const config = await configResponse.json()
+      const maxTeams = config.maxTeams || 2
+      
+      // Get list of teams based on config
       const teamPromises = []
-      for (let i = 1; i <= 10; i++) {
+      for (let i = 1; i <= maxTeams; i++) {
         teamPromises.push(fetch(`/api/teams/${i}`))
       }
       
@@ -212,7 +249,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="teams" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="teams" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Team Monitoring
@@ -224,6 +261,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="statements" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Statement Scoring
+            </TabsTrigger>
+            <TabsTrigger value="game-control" className="flex items-center gap-2">
+              <Play className="w-4 h-4" />
+              Game Control
             </TabsTrigger>
           </TabsList>
 
@@ -501,6 +542,86 @@ export default function AdminDashboard() {
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="game-control" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Play className="w-5 h-5" />
+                  Game Control Panel
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-yellow-800">Start New Game</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        This will permanently delete all current game data including team members, decisions, purchases, and scores.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {!showStartNewGame ? (
+                  <Button 
+                    onClick={() => setShowStartNewGame(true)}
+                    className="flex items-center gap-2"
+                    size="lg"
+                  >
+                    <Play className="w-4 h-4" />
+                    Start New Game
+                  </Button>
+                ) : (
+                  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                    <h4 className="font-semibold">Configure New Game</h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Number of Teams (1-20)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={newGameTeams}
+                        onChange={(e) => setNewGameTeams(parseInt(e.target.value) || 8)}
+                        className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={startNewGame}
+                        disabled={startingNewGame}
+                        className="flex items-center gap-2"
+                      >
+                        {startingNewGame ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            Starting New Game...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4" />
+                            Confirm Start New Game
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => setShowStartNewGame(false)}
+                        disabled={startingNewGame}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

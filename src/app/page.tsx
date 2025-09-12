@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,12 +20,35 @@ interface Team {
 export default function HomePage() {
   const router = useRouter()
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null)
-  const [playerName, setPlayerName] = useState('')
-  const [showNameInput, setShowNameInput] = useState(false)
+  const [isJoining, setIsJoining] = useState(false)
+  const [showTeamSelection, setShowTeamSelection] = useState(false)
+  const [maxTeams, setMaxTeams] = useState(8)
   const [playerTeams, setPlayerTeams] = useState<Team[]>([])
   const [playerSearched, setPlayerSearched] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
-  const [showTeamSelection, setShowTeamSelection] = useState(false)
+  const [playerName, setPlayerName] = useState('')
+  const [showNameInput, setShowNameInput] = useState(false)
+
+  // Fetch max teams configuration on component mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/admin/config', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        if (response.ok) {
+          const config = await response.json()
+          setMaxTeams(parseInt(config.max_teams) || 8)
+        }
+      } catch (error) {
+        console.error('Error fetching config:', error)
+      }
+    }
+    fetchConfig()
+  }, [])
 
   const searchForPlayer = async () => {
     if (!playerName.trim()) return
@@ -214,7 +237,7 @@ export default function HomePage() {
                     Welcome, <strong>{playerName}</strong>! Choose a team to join:
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((teamNumber) => (
+                    {Array.from({ length: maxTeams }, (_, i) => i + 1).map((teamNumber) => (
                       <Button
                         key={teamNumber}
                         variant={selectedTeam === teamNumber ? "default" : "outline"}
