@@ -41,7 +41,7 @@ export default function HomePage() {
         })
         if (response.ok) {
           const config = await response.json()
-          setMaxTeams(parseInt(config.max_teams) || 8)
+          setMaxTeams(parseInt(config.maxTeams) || 8)
         }
       } catch (error) {
         console.error('Error fetching config:', error)

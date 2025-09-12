@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Create separate Supabase client for config operations with service role
+const configSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -126,11 +132,27 @@ export async function POST(request: NextRequest) {
         .select('*', { count: 'exact', head: true })
       console.log(`Team count after 1 second delay: ${delayedCount}`)
       
-      // 4. Update game configuration
-      await supabase.from('game_config').upsert([
-        { key: 'max_teams', value: maxTeams.toString() },
-        { key: 'game_active', value: 'true' }
-      ])
+      // 4. Update game configuration using explicit transaction
+      console.log(`Updating config with maxTeams: ${maxTeams}`)
+      
+      // Use Supabase client update instead of RPC
+      const { error: configError } = await configSupabase
+        .from('game_config')
+        .update({ 
+          value: maxTeams.toString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('key', 'max_teams')
+      
+      if (configError) {
+        console.error('Error updating config:', configError)
+      } else {
+        console.log('Config updated successfully using explicit transaction')
+      }
+      
+      // Verify config was updated
+      const { data: verifyConfig } = await configSupabase.from('game_config').select('*').eq('key', 'max_teams')
+      console.log('Config verification:', verifyConfig)
       
       console.log(`Game reset completed - created ${maxTeams} teams`)
       

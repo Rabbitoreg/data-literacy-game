@@ -108,7 +108,14 @@ export async function POST(request: Request, { params }: { params: { statementId
     // Store evaluations as JSON string in recommended_items array
     const updatedItems = [...currentItems, JSON.stringify({ evaluations: currentEvaluations })]
 
+    // Generate comma-separated acceptable answers for truth_label field (admin visibility)
+    const acceptableAnswers = currentEvaluations
+      .filter((e: any) => e.isCorrect)
+      .map((e: any) => e.choice.toUpperCase())
+      .join(', ')
+
     console.log('About to save updated items:', updatedItems)
+    console.log('Acceptable answers for truth_label:', acceptableAnswers)
     console.log('Statement ID for update:', statementId)
     console.log('Supabase client config check - URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
     console.log('Supabase client config check - Service role key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -136,7 +143,10 @@ export async function POST(request: Request, { params }: { params: { statementId
     // First try a simple update without select to see if that works
     const { error: simpleUpdateError, count: simpleUpdateCount } = await supabase
       .from('statements')
-      .update({ recommended_items: updatedItems })
+      .update({ 
+        recommended_items: updatedItems,
+        truth_label: acceptableAnswers || null
+      })
       .eq('id', statementId)
     
     console.log('Simple update result:', { 
@@ -153,7 +163,10 @@ export async function POST(request: Request, { params }: { params: { statementId
     // Now try with select
     const { data: updateData, error: updateError, count: updateCount } = await supabase
       .from('statements')
-      .update({ recommended_items: updatedItems })
+      .update({ 
+        recommended_items: updatedItems,
+        truth_label: acceptableAnswers || null
+      })
       .eq('id', statementId)
       .select('id, recommended_items')
     

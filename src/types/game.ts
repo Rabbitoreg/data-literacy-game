@@ -53,6 +53,7 @@ export interface StoreItem {
   deliveryType?: string;
   isPersistent?: boolean;
   prerequisite_item_id?: string | null;
+  prerequisite_statement_id?: string | null;
   purchaseCount?: number;
 }
 

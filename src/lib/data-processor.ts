@@ -101,7 +101,8 @@ export class DataProcessor {
         dataType: row.data_type || '',
         deliveryType: row.delivery_type as any,
         isPersistent: row.is_persistent === 'true' || row.is_persistent === '1',
-        prerequisite_item_id: row.prerequisite_item_id || null
+        prerequisite_item_id: row.prerequisite_item_id || null,
+        prerequisite_statement_id: row.prerequisite_statement_id || null
       }
     })
   }

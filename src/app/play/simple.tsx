@@ -120,6 +120,20 @@ export default function PlayPage() {
     }
   }
 
+  // Load items with prerequisite filtering
+  const loadItems = async () => {
+    if (!teamNumber) return
+    try {
+      const itemsResponse = await fetch(`/api/items?teamId=${teamNumber}`)
+      if (itemsResponse.ok) {
+        const itemsData = await itemsResponse.json()
+        setItems(itemsData.items || [])
+      }
+    } catch (err) {
+      console.error('Failed to load items:', err)
+    }
+  }
+
   // Load initial data
   useEffect(() => {
     if (!teamNumber) return
@@ -137,12 +151,7 @@ export default function PlayPage() {
           setStatements(statementsData.statements || [])
         }
 
-        // Load items
-        const itemsResponse = await fetch('/api/items')
-        if (itemsResponse.ok) {
-          const itemsData = await itemsResponse.json()
-          setItems(itemsData.items || [])
-        }
+        await loadItems()
 
         await loadDecisions()
         await loadPurchases()
@@ -193,6 +202,9 @@ export default function PlayPage() {
         const data = await response.json()
         setDecisions(prev => [...prev, data.decision])
         setTeam(data.team)
+        
+        // Reload items to show newly available items based on statement prerequisites
+        await loadItems()
         
         // Move to next statement
         setCurrentStatementIndex(prev => prev + 1)

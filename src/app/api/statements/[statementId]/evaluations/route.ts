@@ -150,10 +150,19 @@ export async function POST(
     // Store evaluations as JSON string in recommended_items array
     const updatedItems = [...currentItems, JSON.stringify({ evaluations: currentEvaluations })]
 
-    // Update statement
+    // Generate comma-separated acceptable answers for truth_label field (admin visibility)
+    const acceptableAnswers = currentEvaluations
+      .filter((e: any) => e.isCorrect)
+      .map((e: any) => e.choice.toUpperCase())
+      .join(', ')
+
+    // Update statement with both recommended_items and truth_label summary
     const { data: evaluation, error } = await supabase
       .from('statements')
-      .update({ recommended_items: updatedItems })
+      .update({ 
+        recommended_items: updatedItems,
+        truth_label: acceptableAnswers || null
+      })
       .eq('id', statementId)
       .select()
       .single()
@@ -218,10 +227,19 @@ export async function DELETE(
     // Store updated evaluations
     const updatedItems = [...currentItems, JSON.stringify({ evaluations: filteredEvaluations })]
 
+    // Generate comma-separated acceptable answers for truth_label field (admin visibility)
+    const acceptableAnswers = currentEvaluations
+      .filter((e: any) => e.isCorrect)
+      .map((e: any) => e.choice.toUpperCase())
+      .join(', ')
+
     // Update statement
     const { error } = await supabase
       .from('statements')
-      .update({ recommended_items: updatedItems })
+      .update({ 
+        recommended_items: updatedItems,
+        truth_label: acceptableAnswers || null
+      })
       .eq('id', statementId)
 
     if (error) {

@@ -88,7 +88,7 @@ export default function AdminDashboard() {
   const [lastUpdate, setLastUpdate] = useState<string>('')
   const [selectedStatement, setSelectedStatement] = useState<Statement | null>(null)
   const [showStartNewGame, setShowStartNewGame] = useState(false)
-  const [newGameTeams, setNewGameTeams] = useState(8)
+  const [newGameTeams, setNewGameTeams] = useState<number | string>(8)
   const [startingNewGame, setStartingNewGame] = useState(false)
 
   // Fetch all teams data
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
       const response = await fetch('/api/admin/start-new-game', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maxTeams: newGameTeams })
+        body: JSON.stringify({ maxTeams: typeof newGameTeams === 'string' ? parseInt(newGameTeams) || 2 : newGameTeams })
       })
 
       if (response.ok) {
@@ -106,6 +106,8 @@ export default function AdminDashboard() {
         alert(`✅ ${result.message}`)
         setShowStartNewGame(false)
         await fetchTeamsData() // Refresh data
+        // Force page reload to clear any cached config
+        window.location.reload()
       } else {
         const error = await response.json()
         alert(`❌ Error: ${error.error}`)
@@ -123,9 +125,16 @@ export default function AdminDashboard() {
       setLoading(true)
       
       // Get max teams from config first
-      const configResponse = await fetch('/api/admin/config')
+      const configResponse = await fetch('/api/admin/config', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const config = await configResponse.json()
-      const maxTeams = config.maxTeams || 2
+      console.log('Admin page config response:', config)
+      const maxTeams = parseInt(config.maxTeams) || parseInt(config.max_teams) || 2
+      console.log('Admin page maxTeams:', maxTeams)
       
       // Get list of teams based on config
       const teamPromises = []
@@ -591,7 +600,17 @@ export default function AdminDashboard() {
                         min="1"
                         max="20"
                         value={newGameTeams}
-                        onChange={(e) => setNewGameTeams(parseInt(e.target.value) || 8)}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (value === '') {
+                            setNewGameTeams('')
+                          } else {
+                            const num = parseInt(value)
+                            if (!isNaN(num) && num >= 1 && num <= 20) {
+                              setNewGameTeams(num)
+                            }
+                          }
+                        }}
                         className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>

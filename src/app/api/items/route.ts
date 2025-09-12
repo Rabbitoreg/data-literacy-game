@@ -41,16 +41,30 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch team purchases' }, { status: 500 })
       }
 
-      const purchasedItemIds = new Set(teamPurchases?.map(p => p.item_id) || [])
+      // Get statements answered by this team
+      const { data: teamDecisions, error: decisionsError } = await supabase
+        .from('decisions')
+        .select('statement_id')
+        .eq('team_id', teamId)
 
-      // Filter items: show only those with no prerequisite OR whose prerequisite has been purchased
+      if (decisionsError) {
+        console.error('Error fetching team decisions:', decisionsError)
+        return NextResponse.json({ error: 'Failed to fetch team decisions' }, { status: 500 })
+      }
+
+      const purchasedItemIds = new Set(teamPurchases?.map(p => p.item_id) || [])
+      const answeredStatementIds = new Set(teamDecisions?.map(d => d.statement_id) || [])
+
+      // Filter items: show only those where ALL prerequisites are met (AND logic)
       availableItems = itemsWithCounts?.filter(item => {
-        // If no prerequisite, item is always available
-        if (!item.prerequisite_item_id) {
-          return true
-        }
-        // If has prerequisite, check if team has purchased it
-        return purchasedItemIds.has(item.prerequisite_item_id)
+        // Check item prerequisite
+        const itemPrereqMet = !item.prerequisite_item_id || purchasedItemIds.has(item.prerequisite_item_id)
+        
+        // Check statement prerequisite
+        const statementPrereqMet = !item.prerequisite_statement_id || answeredStatementIds.has(item.prerequisite_statement_id)
+        
+        // Both prerequisites must be met (AND logic)
+        return itemPrereqMet && statementPrereqMet
       }) || []
     }
 

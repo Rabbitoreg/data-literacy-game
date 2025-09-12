@@ -470,9 +470,10 @@ function PlayPageContent() {
           variant: "success",
         })
         
-        // Reload decisions and team data to update UI and show score changes
+        // Reload decisions, team data, and items to update UI and show score changes
         await loadDecisions()
         await loadTeamData()
+        await loadItems() // Reload items to show newly available items based on statement prerequisites
         
         // Reset form
         setRationale('')
