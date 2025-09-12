@@ -397,20 +397,26 @@ function PlayPageContent() {
     setLastHintCount(currentHintCount)
   }, [purchasedHints.size, lastHintCount, toast])
 
-  // Monitor decision submissions for notifications
+  // Monitor decision submissions for notifications (only for other team members)
   useEffect(() => {
     const currentDecisionCount = decisions.length
     if (lastDecisionCount > 0 && currentDecisionCount > lastDecisionCount) {
-      // New decision submitted by team member
+      // Check if the latest decision was made by current player
       const latestDecision = decisions[decisions.length - 1]
-      toast({
-        title: "📝 Decision Submitted!",
-        description: `A team member submitted a decision: ${latestDecision.choice.toUpperCase()}`,
-        variant: "success",
-      })
+      const currentDecisionMaker = currentStatement ? getAssignedDecisionMaker(currentStatementIndex) : null
+      const isOwnDecision = latestDecision.decider_name === (currentDecisionMaker || playerName || 'Unknown')
+      
+      if (!isOwnDecision) {
+        // New decision submitted by team member (not current player)
+        toast({
+          title: "📝 Decision Submitted!",
+          description: `A team member submitted a decision: ${latestDecision.choice.toUpperCase()}`,
+          variant: "success",
+        })
+      }
     }
     setLastDecisionCount(currentDecisionCount)
-  }, [decisions.length, lastDecisionCount, toast])
+  }, [decisions.length, lastDecisionCount, toast, playerName])
 
   // Load items when team data is available
   useEffect(() => {
