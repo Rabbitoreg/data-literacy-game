@@ -19,6 +19,7 @@ export interface Team {
   timeRemaining: number;
   members: string[];
   deciderOrder: string[];
+  deciderorder?: string[];
   deciderPointer: number;
   score: number;
   completedStatements: number;

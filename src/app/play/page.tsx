@@ -637,9 +637,15 @@ function PlayPageContent() {
   
   // Get assigned decision maker for current statement
   const getAssignedDecisionMaker = (statementIndex: number) => {
-    if (!team?.members || team.members.length === 0) return null
+    // Use deciderorder for stable assignment if available
+    const deciderOrder = (team as any)?.deciderorder
+    if (deciderOrder && deciderOrder.length > 0) {
+      const memberIndex = statementIndex % deciderOrder.length
+      return deciderOrder[memberIndex]
+    }
     
-    // Use statement index to rotate through team members
+    // Fallback to members if deciderorder not set
+    if (!team?.members || team.members.length === 0) return null
     const memberIndex = statementIndex % team.members.length
     return team.members[memberIndex]
   }
