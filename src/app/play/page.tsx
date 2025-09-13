@@ -1139,14 +1139,14 @@ function PlayPageContent() {
                       <div className="space-y-2">
                         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                           <p className="text-sm text-yellow-800">
-                            {(currentStatement as any).statement_hint || 'Too busy right now!'}
+                            {(currentStatement as any).statement_hint || 'I got nothing for you, sorry.'}
                           </p>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         <p className="text-gray-600 text-sm">
-                          Need help with this statement? Ask the TYG Advisor for help. It cost 10 coins.
+                          Need help with this statement? Ask the TYG Advisor for help. It costs 10 coins.
                         </p>
                         <Button
                           onClick={() => {
