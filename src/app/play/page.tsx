@@ -571,7 +571,7 @@ function PlayPageContent() {
       
       if (response.ok) {
         // Immediately update UI state to prevent flickering
-        setPurchasedHints(prev => new Set([...prev, statementId]))
+        setPurchasedHints(prev => new Set(Array.from(prev).concat(statementId)))
         
         // Wait a moment for database to update, then refresh from server
         await new Promise(resolve => setTimeout(resolve, 1000))
