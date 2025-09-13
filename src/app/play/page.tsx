@@ -832,11 +832,11 @@ function PlayPageContent() {
         <Tabs defaultValue="game" className="w-full">
           <TabsList className="grid w-full grid-cols-2 h-14 bg-gray-100">
             <TabsTrigger value="game" className="flex items-center gap-2 h-12 data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
-              <img src="/decision_ball.png" alt="Decision" className="w-4 h-4" />
+              <img src="/decision_ball.png" alt="Decision" className="w-8 h-8" />
               Decision Making
             </TabsTrigger>
             <TabsTrigger value="store" className="flex items-center gap-2 h-12 data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
-              <img src="/chest.png" alt="Decision" className="w-4 h-4" />
+              <img src="/chest.png" alt="Decision" className="w-8 h-8" />
               Evidence Store & Purchases
             </TabsTrigger>
           </TabsList>
@@ -960,7 +960,7 @@ function PlayPageContent() {
               <Card>
                 <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                <img src="/prev_decision.png" alt="Previous Decision" className="w-4 h-4" />Previous Decisions ({completedDecisions.length})</CardTitle>
+                <img src="/prev_decision.png" alt="Previous Decision" className="w-8 h-8" />Previous Decisions ({completedDecisions.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -1160,7 +1160,7 @@ function PlayPageContent() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <img src="/advisor.png" alt="Advisor" className="w-4 h-4" />
+                      <img src="/advisor.png" alt="Advisor" className="w-8 h-8" />
                       TYG Advisor
                     </CardTitle>
                   </CardHeader>
@@ -1197,7 +1197,7 @@ function PlayPageContent() {
                             </>
                           ) : (
                             <>
-                              <img src="/purchase.png" alt="Purchase" className="w-4 h-4 mr-2" />
+                              <img src="/purchase.png" alt="Purchase" className="w-8 h-8 mr-2" />
                               Purchase Advice (10 coins)
                             </>
                           )}
@@ -1286,12 +1286,12 @@ function PlayPageContent() {
                             >
                               {isPurchased ? (
                                 <>
-                                  <img src="/view.png" alt="View" className="w-4 h-4 mr-2" />
+                                  <img src="/view.png" alt="View" className="w-6 h-6 mr-2" />
                                   VIEW
                                 </>
                               ) : (
                                 <>
-                                  <img src="/purchase.png" alt="Purchase" className="w-4 h-4 mr-2" />
+                                  <img src="/purchase.png" alt="Purchase" className="w-6 h-6 mr-2" />
                                   Purchase
                                 </>
                               )}

@@ -130,9 +130,13 @@ export default function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-4xl mx-auto pt-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Data Literacy in Action: There You Go!
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img src="/tyg.png" alt="TYG" className="w-16 h-16" />
+            <h1 className="text-4xl font-bold text-gray-900">
+              Data Literacy in Action: There You Go!
+            </h1>
+            <img src="/tyg.png" alt="TYG" className="w-16 h-16" />
+          </div>
           <p className="text-xl text-gray-600 mb-2">
             There You Go! (TYG), the number one travel company in Ottland, has just finished its sales pilot. The data is in. The results are up. They need you to make decisions!
           </p>
@@ -157,7 +161,7 @@ export default function HomePage() {
           {/* Game Overview */}
           <Card>
             <CardHeader>
-              <CardTitle>How It Works</CardTitle>
+              <CardTitle className="flex items-center gap-2"><img src="/howitworks.png" alt="How it works" className="w-16 h-16" /  >How It Works</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-3 gap-6">
@@ -195,7 +199,8 @@ export default function HomePage() {
           {/* Player Identification */}
           <Card>
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <img src="/prev_decision.png" alt="CEO" className="w-16 h-16" />
                 {!playerSearched ? "Welcome to TYG! Enter Your Name" : playerTeams.length > 0 ? "Welcome Back!" : "You're hired! Join a Team:"}
               </CardTitle>
             </CardHeader>
@@ -306,7 +311,7 @@ export default function HomePage() {
           {/* Admin Access */}
           <Card>
             <CardHeader>
-              <CardTitle>TYG CEO Access Only</CardTitle>
+              <CardTitle className="flex items-center gap-2"><img src="/ceo.png" alt="CEO" className="w-16 h-16" />TYG CEO Access Only</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-gray-600 mb-4">
