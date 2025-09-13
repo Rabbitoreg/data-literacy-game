@@ -6,20 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '../../components/ui/separator'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../components/ui/alert-dialog'
-import { ArrowUp, ArrowDown, DollarSign, ShoppingCart, Users, Target, TrendingUp, TrendingDown, Circle } from 'lucide-react'
-import { ToastAction } from '@/components/ui/toast'
 import { StoreAccordion } from '@/components/game/StoreAccordion'
 import { TeamSetupModal } from '@/components/game/TeamSetupModal'
 import { DecisionControls } from '@/components/game/DecisionControls'
 import { TeamNicknameEditor } from '@/components/game/TeamNicknameEditor'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/components/ui/use-toast'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../components/ui/alert-dialog'
+import { ArrowUp, ArrowDown, DollarSign, ShoppingCart, Users, Target, TrendingUp, TrendingDown, Circle, Eye } from 'lucide-react'
+import { ToastAction } from '@/components/ui/toast'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 // Observable embed component - memoized to prevent re-renders
 const ObservableEmbed = memo(({ url, itemId }: { url: string, itemId: string }) => {
@@ -850,7 +851,7 @@ function PlayPageContent() {
     <div className="min-h-screen bg-gray-50 p-4">
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-6">
-        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between bg-white p-4 rounded-lg shadow gap-4">
           <div>
             <TeamNicknameEditor
               teamId={team?.id || ''}
@@ -876,7 +877,7 @@ function PlayPageContent() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">${team?.budget?.toLocaleString()}</div>
               <div className="text-sm text-gray-500">Team Budget</div>
@@ -906,21 +907,23 @@ function PlayPageContent() {
 
       <div className="max-w-6xl mx-auto">
         <Tabs defaultValue="game" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-14 bg-gray-100">
-            <TabsTrigger value="game" className="flex items-center gap-2 h-12 data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
-              <img src="/decision_ball.png" alt="Decision" className="w-8 h-8" />
-              Decision Making
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 h-auto sm:h-14 bg-gray-100">
+            <TabsTrigger value="game" className="flex items-center justify-center gap-2 h-12 text-sm sm:text-base data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
+              <img src="/decision_ball.png" alt="Decision" className="w-6 h-6 sm:w-8 sm:h-8" />
+              <span className="hidden sm:inline">Decision Making</span>
+              <span className="sm:hidden">Data Decisions</span>
             </TabsTrigger>
-            <TabsTrigger value="store" className="flex items-center gap-2 h-12 data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
-              <img src="/chest.png" alt="Decision" className="w-8 h-8" />
-              Evidence Store & Purchases
+            <TabsTrigger value="store" className="flex items-center justify-center gap-2 h-12 text-sm sm:text-base data-[state=active]:bg-white data-[state=active]:border-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 data-[state=active]:font-semibold">
+              <img src="/chest.png" alt="Decision" className="w-6 h-6 sm:w-8 sm:h-8" />
+              <span className="hidden sm:inline">Evidence Store & Purchases</span>
+              <span className="sm:hidden">Evidence Store</span>
             </TabsTrigger>
           </TabsList>
           
           <TabsContent value="game" className="mt-6">
-            <div className="grid grid-cols-12 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Main Decision Area */}
-              <div className="col-span-8">
+              <div className="lg:col-span-8">
           {currentStatement ? (
             <Card>
               <CardHeader className="flex items-center gap-2">
@@ -942,14 +945,14 @@ function PlayPageContent() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Team Decision: is the statement True, False, or Unknown?</label>
-                    <div className="flex gap-2">
+                    <label className="text-sm font-medium mb-2 block">Team Decision: is the data statement True, False, or Unknown?</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
                       {(['true', 'false', 'unknown'] as const).map((choice) => (
                         <Button
                           key={choice}
                           variant={selectedChoice === choice ? 'default' : 'outline'}
                           onClick={() => setSelectedChoice(choice)}
-                          className="capitalize"
+                          className="capitalize text-sm sm:text-base px-3 py-2"
                         >
                           {choice}
                         </Button>
@@ -977,7 +980,7 @@ function PlayPageContent() {
                       value={rationale}
                       onChange={(e) => setRationale(e.target.value)}
                       placeholder="Explain your reasoning..."
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                       rows={4}
                       required
                     />
@@ -1007,7 +1010,7 @@ function PlayPageContent() {
                   <Button 
                     onClick={handleSubmitDecision}
                     disabled={!rationale.trim()}
-                    className="w-full"
+                    className="w-full text-sm sm:text-base py-3"
                   >
                     Submit Decision
                   </Button>
@@ -1040,7 +1043,7 @@ function PlayPageContent() {
                 <img src="/prev_decision.png" alt="Previous Decision" className="w-8 h-8" />Previous Decisions ({completedDecisions.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
+                  <Accordion type="single" collapsible className="w-full">
                     {completedDecisions.map((decision, index) => {
                       const statementIndex = statements.findIndex(s => s.id === decision.statement_id) + 1
                       
@@ -1062,36 +1065,52 @@ function PlayPageContent() {
                       }
 
                       return (
-                        <div key={decision.id} className="border rounded-lg bg-white shadow-sm">
-                          {/* Header */}
-                          <div className="p-4 border-b bg-gray-800 text-white">
-                            <div className="flex items-center justify-between">
+                        <AccordionItem key={decision.id} value={`decision-${decision.id}`} className="border rounded-lg mb-2 bg-white shadow-sm">
+                          <AccordionTrigger className="px-4 py-3 bg-gray-800 text-white rounded-t-lg hover:bg-gray-700 hover:no-underline">
+                            <div className="flex items-center justify-between w-full mr-4">
                               <div className="flex items-center gap-3">
-                                <img src="/statement.png" alt="Statement" className="w-8 h-8" />
-                                <Badge variant="outline" className="text-sm bg-white text-gray-800 border-gray-300">
-                                  Statement {statementIndex}
+                                <img src="/statement.png" alt="Statement" className="w-6 h-6 sm:w-8 sm:h-8" />
+                                <Badge variant="outline" className="text-xs sm:text-sm bg-white text-gray-800 border-gray-300">
+                                  Choice {statementIndex}
                                 </Badge>
-                                <span className="text-sm text-gray-300">
-                                  {new Date(decision.submitted_at).toLocaleString()}
+                                <span className={`text-xs sm:text-sm font-semibold ${
+                                  decision.points_earned > 0 ? 'text-green-400' : 
+                                  decision.points_earned < 0 ? 'text-red-400' : 'text-gray-300'
+                                }`}>
+                                  {decision.points_earned > 0 ? '+' : ''}{decision.points_earned} pts
                                 </span>
                               </div>
-                              <span className="text-sm text-gray-300">
-                                Decided by: {decision.decider_name}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant="secondary"
+                                  className="text-xs px-2 py-1"
+                                >
+                                  {decision.choice.toUpperCase()}
+                                </Badge>
+                                <span className="text-xs text-gray-300 hidden sm:inline">
+                                  by {decision.decider_name}
+                                </span>
+                              </div>
                             </div>
-                          </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-0 pb-0">
 
                           {/* Statement */}
                           <div className="p-4 border-b">
-                            <p className="font-medium text-gray-900 mb-2">
-                              {decision.statement?.text}
-                            </p>
+                            <div className="flex justify-between items-start mb-2">
+                              <p className="font-medium text-gray-900 flex-1">
+                                {decision.statement?.text}
+                              </p>
+                              <span className="text-xs text-gray-500 ml-4 whitespace-nowrap">
+                                {new Date(decision.submitted_at).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Team Decision */}
                           <div className="p-4 border-b">
                             <h4 className="font-semibold text-gray-900 mb-3">Team Decision</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               <div>
                                 <label className="text-sm font-medium text-gray-600">Choice</label>
                                 <div className="mt-1">
@@ -1223,10 +1242,11 @@ function PlayPageContent() {
                               </div>
                             </div>
                           )}
-                        </div>
+                          </AccordionContent>
+                        </AccordionItem>
                       )
                     })}
-                  </div>
+                  </Accordion>
                 </CardContent>
               </Card>
             </div>
@@ -1234,13 +1254,13 @@ function PlayPageContent() {
         </div>
 
               {/* Hint section */}
-              <div className="col-span-4">
+              <div className="lg:col-span-4">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <img src="/advisor.png" alt="Advisor" className="w-8 h-8" />
-                      TYG Advisor
-                    </CardTitle>
+                      <CardTitle className="text-lg sm:text-xl">TYG Advisor</CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {currentStatement && purchasedHints.has(currentStatement.id) ? (
@@ -1328,25 +1348,21 @@ function PlayPageContent() {
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                      <h3 className="text-base sm:text-lg font-semibold">Available Evidence ({filteredItems.length})</h3>
+                      <div className="text-sm text-gray-500">
+                        Budget: ${team?.budget?.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {filteredItems.map((item) => {
                         const purchase = purchases.find(p => p.item_id === item.id)
                         const isPurchased = !!purchase
                         
                         return (
                           <div key={item.id} className="p-4 border rounded-lg">
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-medium">{item.name}</h4>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">${item.cost}</Badge>
-                                {item.purchase_count !== undefined && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {item.purchase_count} sold
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-3">{item.description}</p>
+                            <h4 className="font-medium text-sm sm:text-base mb-2">{item.name}</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-3">{item.description}</p>
                             
                             {isPurchased && purchase && (
                               <div className="mb-3 p-2 bg-green-50 rounded text-sm">
@@ -1355,25 +1371,28 @@ function PlayPageContent() {
                               </div>
                             )}
                             
-                            <Button
-                              size="sm"
-                              onClick={() => isPurchased ? handleViewItem(item) : handlePurchaseItem(item.id)}
-                              disabled={!team || (!isPurchased && (team.budget ?? 0) < item.cost)}
-                              className={`w-full transition-all duration-200 ${isPurchased ? 'border-2 border-green-600 text-green-600 bg-white hover:bg-green-50' : 'border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-50'}`}
-                              variant="outline"
-                            >
-                              {isPurchased ? (
-                                <>
-                                  <img src="/view.png" alt="View" className="w-6 h-6 mr-2" />
-                                  VIEW
-                                </>
-                              ) : (
-                                <>
-                                  <img src="/purchase.png" alt="Purchase" className="w-6 h-6 mr-2" />
-                                  Purchase
-                                </>
-                              )}
-                            </Button>
+                            <div className="flex items-center justify-between">
+                              <div className="text-base sm:text-lg font-bold text-green-600">${item.cost?.toLocaleString()}</div>
+                              <Button
+                                size="sm"
+                                onClick={() => isPurchased ? handleViewItem(item) : handlePurchaseItem(item.id)}
+                                disabled={!team || (!isPurchased && (team.budget ?? 0) < item.cost)}
+                                className={`transition-all duration-200 text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2 ${isPurchased ? 'border-2 border-green-600 text-green-600 bg-white hover:bg-green-50' : 'border-2 border-blue-600 text-blue-600 bg-white hover:bg-blue-50'}`}
+                                variant="outline"
+                              >
+                                {isPurchased ? (
+                                  <>
+                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                    View
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                    Purchase
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         )
                       })}
