@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../components/ui/alert-dialog'
 import { ArrowUp, ArrowDown, DollarSign, ShoppingCart, Users, Target, TrendingUp, TrendingDown, Circle } from 'lucide-react'
+import { ToastAction } from '@/components/ui/toast'
 import { StoreAccordion } from '@/components/game/StoreAccordion'
 import { TeamSetupModal } from '@/components/game/TeamSetupModal'
 import { DecisionControls } from '@/components/game/DecisionControls'
@@ -404,26 +405,65 @@ function PlayPageContent() {
     setLastHintCount(currentHintCount)
   }, [purchasedHints.size, lastHintCount, toast])
 
-  // Monitor decision submissions for notifications (only for other team members)
+  // Monitor decision submissions for notifications (for other team members)
   useEffect(() => {
     const currentDecisionCount = decisions.length
+    console.log('Decision monitoring:', { currentDecisionCount, lastDecisionCount, decisions })
+    
     if (lastDecisionCount > 0 && currentDecisionCount > lastDecisionCount) {
       // Check if the latest decision was made by current player
       const latestDecision = decisions[decisions.length - 1]
-      const currentDecisionMaker = currentStatement ? getAssignedDecisionMaker(currentStatementIndex) : null
-      const isOwnDecision = latestDecision.decider_name === (currentDecisionMaker || playerName || 'Unknown')
+      const isOwnDecision = latestDecision.decider_name === (playerName || 'Unknown')
+      
+      console.log('New decision detected:', {
+        latestDecision,
+        playerName,
+        isOwnDecision
+      })
       
       if (!isOwnDecision) {
-        // New decision submitted by team member (not current player)
-        toast({
-          title: "📝 Decision Submitted!",
-          description: `A team member submitted a decision: ${latestDecision.choice.toUpperCase()}`,
+        // New decision submitted by team member (not current player) - show detailed toast
+        const pointsEarned = latestDecision.points_earned || 0
+        const evidenceItems = latestDecision.evidence_items ? 
+          latestDecision.evidence_items.map((itemId: string) => {
+            const item = items.find(i => i.id === itemId)
+            return item ? item.name : 'Unknown Item'
+          }) : []
+
+        console.log('Showing detailed toast for team member decision')
+        const { dismiss } = toast({
+          title: "📝 Team Decision Submitted!",
+          description: (
+            <div className="space-y-2 text-sm">
+              <br></br>
+              <div><strong>Team Member:</strong> {latestDecision.decider_name}</div>
+              <div><strong>Team Choice:</strong> {latestDecision.choice.toUpperCase()}</div>
+              <div><strong>Team Confidence:</strong> {latestDecision.confidence}%</div>
+              <div><strong>Team Rationale:</strong> {latestDecision.rationale}</div>
+              {evidenceItems.length > 0 && (
+                <div><strong>Evidence Used:</strong> {evidenceItems.join(', ')}</div>
+              )}
+              <hr></hr>
+              <div><strong>Points Earned:</strong> <span className={pointsEarned > 0 ? 'text-green-600' : pointsEarned < 0 ? 'text-red-600' : 'text-gray-600'}>{pointsEarned > 0 ? '+' : ''}{pointsEarned}</span></div>
+              <div className="text-xs text-gray-500 mt-2">See <strong>Previous Decisions</strong> tab for more details</div>
+              
+              <div className="mt-4 pt-2 border-t border-gray-200">
+                <button 
+                  onClick={() => dismiss()}
+                  className="w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-500 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ),
           variant: "success",
+          duration: Infinity, // Make it permanent until dismissed
         })
       }
     }
     setLastDecisionCount(currentDecisionCount)
-  }, [decisions.length, lastDecisionCount, toast, playerName])
+  }, [decisions.length, lastDecisionCount, toast, playerName, items])
 
   // Load items when team data is available
   useEffect(() => {
@@ -470,11 +510,47 @@ function PlayPageContent() {
       if (response.ok) {
         const result = await response.json()
         
-        // Show success notification
-        toast({
-          title: "✅ Decision Submitted!",
-          description: `Your team decision (${selectedChoice.toUpperCase()}) has been recorded.`,
+        // Get evidence items for display
+        const evidenceItems = selectedEvidence.map(itemId => {
+          const item = items.find(i => i.id === itemId)
+          return item ? item.name : 'Unknown Item'
+        })
+        
+        // Create detailed success notification with proper formatting
+        const pointsEarned = result.points_earned || 0
+        const oldScore = team.score || 0
+        const newScore = oldScore + pointsEarned
+        const scoreChange = pointsEarned
+        
+        const { dismiss } = toast({
+          title: "✅ Decision Submitted Successfully!",
+          description: (
+            <div className="space-y-2 text-sm">
+              <br></br>
+              <div><strong>Team Choice:</strong> {selectedChoice.toUpperCase()}</div>
+              <div><strong>Team Confidence:</strong> {confidence}%</div>
+              <div><strong>Team Rationale:</strong> {rationale.trim()}</div>
+              {evidenceItems.length > 0 && (
+                <div><strong>Evidence Used:</strong> {evidenceItems.join(', ')}</div>
+              )}
+              <hr></hr>
+              <div><strong>Points Earned:</strong> <span className={pointsEarned > 0 ? 'text-green-600' : pointsEarned < 0 ? 'text-red-600' : 'text-gray-600'}>{pointsEarned > 0 ? '+' : ''}{pointsEarned}</span></div>
+              <div><strong>New Team Score:</strong> {newScore.toLocaleString()} {scoreChange > 0 && <span className="text-green-600">(+{scoreChange})</span>}</div>
+              
+              <div className="text-xs text-gray-500 mt-2">See <strong>Previous Decisions</strong> tab for more details</div>
+              
+              <div className="mt-4 pt-2 border-t border-gray-200">
+                <button 
+                  onClick={() => dismiss()}
+                  className="w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border-2 border-blue-500 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          ),
           variant: "success",
+          duration: Infinity, // Make it permanent until dismissed
         })
         
         // Reload decisions, team data, and items to update UI and show score changes
@@ -847,7 +923,8 @@ function PlayPageContent() {
               <div className="col-span-8">
           {currentStatement ? (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex items-center gap-2">
+                <img src="/statement.png" alt="Statement" className="w-16 h-16" />
                 <CardTitle>Statement {currentStatementIndex + 1} of {statements.length}</CardTitle>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{currentStatement.topic}</Badge>
@@ -990,6 +1067,7 @@ function PlayPageContent() {
                           <div className="p-4 border-b bg-gray-800 text-white">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
+                                <img src="/statement.png" alt="Statement" className="w-8 h-8" />
                                 <Badge variant="outline" className="text-sm bg-white text-gray-800 border-gray-300">
                                   Statement {statementIndex}
                                 </Badge>
