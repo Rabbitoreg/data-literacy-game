@@ -225,6 +225,7 @@ function PlayPageContent() {
   const [purchasedHints, setPurchasedHints] = useState<Set<string>>(new Set())
   const [lastHintCount, setLastHintCount] = useState(0)
   const [lastDecisionCount, setLastDecisionCount] = useState(0)
+  const [purchasingHint, setPurchasingHint] = useState(false)
 
   const [selectedChoice, setSelectedChoice] = useState<'true' | 'false' | 'unknown'>('true')
   const [confidence, setConfidence] = useState(70)
@@ -272,6 +273,7 @@ function PlayPageContent() {
       if (response.ok) {
         const data = await response.json()
         const hintIds = data.hints.map((hint: any) => hint.statement_id)
+        console.log('Loaded purchased hints:', hintIds)
         setPurchasedHints(new Set(hintIds))
       }
     } catch (err) {
@@ -376,15 +378,17 @@ function PlayPageContent() {
 
   // Periodically refresh purchased hints to sync with other team members
   useEffect(() => {
-    if (!teamNumber) return
+    if (!teamNumber || purchasingHint) return
 
     const interval = setInterval(() => {
-      loadPurchasedHints()
-      loadDecisions() // Also refresh decisions to catch new submissions
+      if (!purchasingHint) { // Only refresh if not currently purchasing
+        loadPurchasedHints()
+        loadDecisions() // Also refresh decisions to catch new submissions
+      }
     }, 5000) // Refresh every 5 seconds
 
     return () => clearInterval(interval)
-  }, [teamNumber])
+  }, [teamNumber, purchasingHint])
 
   // Monitor hint purchases for notifications
   useEffect(() => {
@@ -551,7 +555,9 @@ function PlayPageContent() {
   const handlePurchaseHint = async (statementId: string) => {
     console.log('handlePurchaseHint called with:', statementId, typeof statementId)
     
-    if (!team || (team.budget ?? 0) < 10) return
+    if (!team || (team.budget ?? 0) < 10 || purchasingHint) return
+    
+    setPurchasingHint(true)
     
     try {
       console.log('Purchasing hint for statement:', statementId, 'team:', team.team_number)
@@ -564,8 +570,17 @@ function PlayPageContent() {
       console.log('Purchase hint response:', response.status)
       
       if (response.ok) {
-        setPurchasedHints(prev => new Set(Array.from(prev).concat(statementId)))
-        await loadTeamData() // Refresh team data to update budget
+        // Immediately update UI state to prevent flickering
+        setPurchasedHints(prev => new Set([...prev, statementId]))
+        
+        // Wait a moment for database to update, then refresh from server
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Refresh both team data and hints from server to ensure consistency
+        await Promise.all([
+          loadTeamData(), // Refresh team data to update budget
+          loadPurchasedHints() // Refresh hints to show the new purchase
+        ])
         
         // Show success notification for current user
         toast({
@@ -577,14 +592,29 @@ function PlayPageContent() {
         const errorData = await response.json()
         console.error('Purchase hint error:', errorData)
         
-        // If hint was already purchased by another team member, refresh hints to show it
+        // If hint was already purchased, refresh hints to show it and don't show error
         if (response.status === 400 && errorData.error?.includes('already purchased')) {
           console.log('Hint already purchased, refreshing hints list')
           await loadPurchasedHints()
+          // Don't show error toast since this is expected behavior
+        } else {
+          // Show error for other types of failures
+          toast({
+            title: "❌ Purchase Failed",
+            description: errorData.error || "Failed to purchase hint",
+            variant: "destructive",
+          })
         }
       }
     } catch (error) {
       console.error('Error purchasing hint:', error)
+      toast({
+        title: "❌ Purchase Failed",
+        description: "Network error occurred while purchasing hint",
+        variant: "destructive",
+      })
+    } finally {
+      setPurchasingHint(false)
     }
   }
 
@@ -1156,12 +1186,21 @@ function PlayPageContent() {
                               handlePurchaseHint(statementId);
                             }
                           }}
-                          disabled={!team || (team.budget ?? 0) < 10 || !currentStatement}
+                          disabled={!team || (team.budget ?? 0) < 10 || !currentStatement || purchasingHint}
                           className="w-full"
                           variant="outline"
                         >
-                          <img src="/purchase.png" alt="Purchase" className="w-4 h-4 mr-2" />
-                          Purchase Advice (10 coins)
+                          {purchasingHint ? (
+                            <>
+                              <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                              Purchasing...
+                            </>
+                          ) : (
+                            <>
+                              <img src="/purchase.png" alt="Purchase" className="w-4 h-4 mr-2" />
+                              Purchase Advice (10 coins)
+                            </>
+                          )}
                         </Button>
                         {team && (team.budget ?? 0) < 10 && (
                           <p className="text-red-500 text-xs">Insufficient budget</p>
